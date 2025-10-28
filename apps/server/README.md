@@ -6,8 +6,8 @@ To install dependencies:
 pnpm install
 ```
 
-To run:
+To run (from root only):
 
 ```bash
-bun run index.ts
+pnpm dev --filter=server
 ```

@@ -18,6 +18,7 @@
     "@workspace/axios": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/types": "workspace:*",
+    "@workspace/validations": "workspace:*",
     "drizzle-kit": "^0.31.5",
     "drizzle-orm": "^0.44.7",
     "googleapis": "^164.1.0",

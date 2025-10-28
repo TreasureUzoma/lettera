@@ -5,6 +5,9 @@ import type { RedisClientType } from "redis";
 let redisClient: RedisClientType;
 
 export async function getRedis() {
+  if (!envConfig.REDIS_URL) {
+    throw new Error("REDIS ENV url is missing in .env");
+  }
   if (!redisClient) {
     redisClient = createClient({
       url: envConfig.REDIS_URL,

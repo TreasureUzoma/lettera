@@ -8,7 +8,11 @@ export function rateLimiter(
 ): MiddlewareHandler {
   return async (c, next) => {
     const userAgent = c.req.header("User-Agent") || "unknown";
-    const ip = c.req.header("x-forwarded-for") || "unknown"; // todo: improve
+    const ip =
+      c.req.header("x-forwarded-for") ||
+      c.req.header("cf-connecting-ip") ||
+      c.req.header("x-real-ip") ||
+      "unknown";
     const key = crypto
       .createHash("sha256")
       .update(userAgent + ip)

@@ -5,7 +5,7 @@ import {
   loginSchema,
   createAccountSchema,
   verifyResetPasswordSchema,
-} from "@workspace/types";
+} from "@workspace/validations";
 import {
   login,
   createOauthUser,
@@ -153,6 +153,7 @@ authRoute.post(
   }
 );
 
+// reset password
 authRoute.post(
   "/reset-password",
   zValidator("json", verifyResetPasswordSchema, (result, c) => {
