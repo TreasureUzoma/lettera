@@ -1,0 +1,28 @@
+{
+  "name": "server",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "dev": "bun run --watch index.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.7.4",
+    "@neondatabase/serverless": "^1.0.2",
+    "@workspace/axios": "workspace:*",
+    "@workspace/db": "workspace:*",
+    "@workspace/types": "workspace:*",
+    "drizzle-kit": "^0.31.5",
+    "drizzle-orm": "^0.44.7",
+    "googleapis": "^164.1.0",
+    "hono": "^4.10.3",
+    "redis": "^5.9.0",
+    "zod": "^3.25.76"
+  }
+}

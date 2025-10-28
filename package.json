@@ -1,0 +1,27 @@
+{
+  "name": "lettera",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "lint": "turbo lint",
+    "build": "dotenv -e .env -- turbo run build",
+    "dev": "dotenv -e .env -- turbo dev",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "dotenv-cli": "^10.0.0",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.5",
+    "typescript": "5.7.3"
+  },
+  "packageManager": "pnpm@10.4.1",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "next-themes": "^0.4.6",
+    "sonner": "^2.0.7"
+  }
+}

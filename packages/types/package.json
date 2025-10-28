@@ -1,0 +1,10 @@
+{
+  "name": "@workspace/types",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/validations": "workspace:*"
+  }
+}

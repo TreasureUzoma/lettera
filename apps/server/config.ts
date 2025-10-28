@@ -1,0 +1,13 @@
+export const envConfig = {
+  dbUrl: process.env.DB_URL,
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
+  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
+  SERVER_PROD_URL: process.env.SERVER_PROD_URL,
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SCRET,
+  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SCRET,
+  NODE_ENV: process.env.NODE_ENV,
+  REDIS_URL: process.env.REDIS_URL,
+  PORT: 3005,
+};
