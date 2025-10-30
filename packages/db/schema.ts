@@ -10,6 +10,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -17,6 +18,12 @@ export const userAuthMethodEnum = pgEnum("user_auth_method", [
   "email",
   "google",
   "github",
+]);
+export const projectRoleEnum = pgEnum("project_role", [
+  "owner",
+  "admin",
+  "editor",
+  "viewer",
 ]);
 export const userStatusEnum = pgEnum("user_status", [
   "active",
@@ -70,39 +77,69 @@ export const users = pgTable("users", {
   password: text("password"),
   emailVerifiedAt: timestamp("email_verified_at"),
   avatarUrl: text("avatar_url"),
-  createdAt: timestamp("created_at")
-    .$defaultFn(() => new Date())
-    .notNull(),
-  updatedAt: timestamp("updated_at")
-    .$defaultFn(() => new Date())
-    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().notNull(),
   authMethod: userAuthMethodEnum("auth_method").default("email"),
   status: userStatusEnum("status").default("active"),
   role: userRoleEnum("role").default("user"),
   subscriptionType: userSubscriptionEnum("subscription_type").default("free"),
 });
 
-export const projects = pgTable(
-  "projects",
+export const projects = pgTable("projects", {
+  serial: serial("serial").primaryKey(),
+  id: uuid("id").defaultRandom().notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  config: jsonb("config").default({}),
+  isActive: boolean("is_active").default(true).notNull(),
+  isPrivateAt: timestamp("is_private_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull().notNull(),
+});
+
+export const projectMembers = pgTable(
+  "project_members",
   {
     serial: serial("serial").primaryKey(),
     id: uuid("id").defaultRandom().notNull().unique(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    description: text("description"),
-    config: jsonb("config").default({}),
-    isActive: boolean("is_active").default(true).notNull(),
-    createdAt: timestamp("created_at")
-      .$defaultFn(() => new Date())
-      .notNull(),
-    updatedAt: timestamp("updated_at")
-      .$defaultFn(() => new Date())
-      .notNull(),
+    role: projectRoleEnum("role").default("viewer").notNull(),
+    joinedAt: timestamp("joined_at").defaultNow(),
   },
   (table) => ({
-    userIdx: index("projects_user_idx").on(table.userId),
+    projectIdx: index("project_members_project_idx").on(table.projectId),
+    userIdx: index("project_members_user_idx").on(table.userId),
+    projectUserUnique: uniqueIndex("project_members_project_user_idx").on(
+      table.projectId,
+      table.userId
+    ),
+  })
+);
+
+export const projectApiKeys = pgTable(
+  "project_api_keys",
+  {
+    serial: serial("serial").primaryKey(),
+    id: uuid("id").defaultRandom().notNull().unique(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    publicKey: varchar("public_key", { length: 128 }).notNull().unique(),
+    encryptedSecretKey: varchar("encrypted_secret_key", { length: 256 })
+      .notNull()
+      .unique(), // stored as encrypted
+    lastUsedAt: timestamp("last_used_at"),
+    createdAt: timestamp("created_at").defaultNow(),
+    revokedAt: timestamp("revoked_at"),
+  },
+  (table) => ({
+    projectIdx: index("api_keys_project_idx").on(table.projectId),
+    publickKeyIdx: index("api_keys_public_key_idx").on(table.publicKey),
   })
 );
 
@@ -116,9 +153,7 @@ export const emails = pgTable(
       .references(() => projects.id, { onDelete: "cascade" }),
     subject: text("subject").notNull(),
     body: text("body").notNull(),
-    sentAt: timestamp("sent_at")
-      .$defaultFn(() => new Date())
-      .notNull(),
+    sentAt: timestamp("sent_at").defaultNow().notNull().notNull(),
     status: emailStatusEnum("status").notNull(),
   },
   (table) => ({
@@ -138,12 +173,8 @@ export const subscribers = pgTable(
     name: text("name"),
     email: text("email").notNull(),
     status: subscriberStatusEnum("status").notNull(),
-    createdAt: timestamp("created_at")
-      .$defaultFn(() => new Date())
-      .notNull(),
-    updatedAt: timestamp("updated_at")
-      .$defaultFn(() => new Date())
-      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().notNull(),
   },
   (table) => ({
     projectIdx: index("subscribers_project_idx").on(table.projectId),
@@ -151,6 +182,37 @@ export const subscribers = pgTable(
     projectEmailUnique: uniqueIndex("subscribers_project_email_idx").on(
       table.projectId,
       table.email
+    ),
+  })
+);
+
+export const projectInvites = pgTable(
+  "project_invites",
+  {
+    serial: serial("serial").primaryKey(),
+    id: uuid("id").defaultRandom().notNull().unique(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    invitedByUserId: uuid("invited_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    invitedToUserId: uuid("invited_to_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: projectRoleEnum("role").default("viewer").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull().notNull(),
+    acceptedAt: timestamp("accepted_at"),
+    revokedAt: timestamp("revoked_at"),
+  },
+  (table) => ({
+    projectIdx: index("project_invites_project_idx").on(table.projectId),
+    invitedToUserIdx: index("project_invites_invited_to_user_idx").on(
+      table.invitedToUserId
+    ),
+    projectToUserUnique: uniqueIndex("project_invites_project_to_user_idx").on(
+      table.projectId,
+      table.invitedToUserId
     ),
   })
 );
@@ -172,12 +234,8 @@ export const payments = pgTable(
     reference: text("reference").notNull().unique(),
     status: paymentStatusEnum("status").notNull().default("pending"),
     metadata: jsonb("metadata").default({}),
-    createdAt: timestamp("created_at")
-      .$defaultFn(() => new Date())
-      .notNull(),
-    updatedAt: timestamp("updated_at")
-      .$defaultFn(() => new Date())
-      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
     userIdx: index("payments_user_idx").on(table.userId),
@@ -193,8 +251,8 @@ export const verification = pgTable("verification", {
   value: text("value").notNull(),
   type: text("type").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").$defaultFn(() => new Date()),
-  updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const refreshTokens = pgTable(
@@ -209,7 +267,7 @@ export const refreshTokens = pgTable(
     expiresAt: timestamp("expires_at").notNull(),
     revoked: boolean("revoked").notNull().default(false),
     userAgent: text("user_agent").notNull(),
-    updatedAt: timestamp("updated_at").$defaultFn(() => new Date()),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
     userIdx: index("refresh_tokens_user_idx").on(table.userId),
@@ -227,33 +285,63 @@ export const passwordResets = pgTable(
     token: text("token").notNull(),
     expiresAt: timestamp("expires_at").notNull(),
     used: boolean("used").notNull().default(false),
-    createdAt: timestamp("created_at")
-      .$defaultFn(() => new Date())
-      .notNull(),
-    updatedAt: timestamp("updated_at")
-      .$defaultFn(() => new Date())
-      .notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull().notNull(),
   },
   (table) => ({
     userIdx: index("password_resets_user_idx").on(table.userId),
   })
 );
 
+export const projectInviteRelations = relations(projectInvites, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectInvites.projectId],
+    references: [projects.id],
+  }),
+  invitedBy: one(users, {
+    fields: [projectInvites.invitedByUserId],
+    references: [users.id],
+    relationName: "invited_by_user",
+  }),
+  invitedTo: one(users, {
+    fields: [projectInvites.invitedToUserId],
+    references: [users.id],
+    relationName: "invited_to_user",
+  }),
+}));
+
 export const userRelations = relations(users, ({ many }) => ({
-  projects: many(projects),
   refreshTokens: many(refreshTokens),
   passwordResets: many(passwordResets),
   payments: many(payments),
+  projectMemberships: many(projectMembers),
 }));
 
 export const projectRelations = relations(projects, ({ one, many }) => ({
-  user: one(users, {
-    fields: [projects.userId],
-    references: [users.id],
-  }),
   emails: many(emails),
   subscribers: many(subscribers),
   payments: many(payments),
+  apiKeys: many(projectApiKeys),
+  members: many(projectMembers),
+  invites: many(projectInvites),
+}));
+
+export const projectMemberRelations = relations(projectMembers, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectMembers.projectId],
+    references: [projects.id],
+  }),
+  user: one(users, {
+    fields: [projectMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const apiKeyRelations = relations(projectApiKeys, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectApiKeys.projectId],
+    references: [projects.id],
+  }),
 }));
 
 export const emailRelations = relations(emails, ({ one }) => ({

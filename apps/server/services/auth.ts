@@ -14,7 +14,7 @@ import { google } from "googleapis";
 import { db } from "@workspace/db";
 import { passwordResets, refreshTokens, users } from "@workspace/db/schema";
 import { and, eq } from "drizzle-orm";
-import { sendForgottenPasswordEmail, sendWelcomeEmail } from "./internal";
+import { sendForgottenPasswordEmail, sendWelcomeEmail } from "./mail/internal";
 
 const oauth2Client = new google.auth.OAuth2(
   envConfig.GOOGLE_CLIENT_ID,
@@ -162,6 +162,7 @@ export const insertAuthRefreshToken = async (data: NewRefreshToken) => {
     token: data.token,
     expiresAt: data.expiresAt,
     revoked: false,
+    userId: data.userId,
     userAgent: data.userAgent,
   });
 };

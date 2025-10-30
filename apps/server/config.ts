@@ -1,5 +1,4 @@
 export const envConfig = {
-  dbUrl: process.env.DB_URL,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
@@ -10,4 +9,5 @@ export const envConfig = {
   NODE_ENV: process.env.NODE_ENV,
   REDIS_URL: process.env.REDIS_URL,
   PORT: 3005,
+  ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
 };

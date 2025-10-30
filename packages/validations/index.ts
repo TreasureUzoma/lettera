@@ -41,3 +41,49 @@ export const createOauthUserSchema = z.object({
   email: z.string().email(),
   avatarUrl: z.string().url().optional(),
 });
+
+export const createProjectSchema = z.object({
+  name: z.string().min(1).max(35),
+  isPublic: z.boolean(),
+  fromEmail: z.string().email(),
+});
+
+export type NewProject = z.infer<typeof createProjectSchema>;
+
+export const updateProjectSchema = z.object({
+  name: z.string().min(1).max(35).optional(),
+  isPublic: z.boolean().optional(),
+  fromEmail: z.string().email().optional(),
+});
+
+export type UpdateProject = z.infer<typeof updateProjectSchema>;
+
+export const isValidUUID = z.object({
+  id: z.string().uuid("Invalid UUID format"),
+});
+
+export const newProjectInviteSchema = z.object({
+  projectId: z.string().uuid(),
+  invitedByUserId: z.string().uuid(),
+  invitedToUserId: z.string().uuid(),
+});
+
+export const updateProjectMemberRoleSchema = z.object({
+  projectId: z.string().uuid(),
+  targetUserId: z.string().uuid(),
+  role: z.enum(["owner", "admin", "editor", "viewer"]),
+});
+
+export type NewProjectInvite = z.infer<typeof newProjectInviteSchema>;
+
+export const acceptProjectInviteSchema = z.object({
+  inviteId: z.string().uuid(),
+  acceptingUserId: z.string().uuid(),
+});
+
+export const inviteUserToProjectSchema = z.object({
+  projectId: z.string().uuid(),
+  invitedByUserId: z.string().uuid(),
+  invitedToUserId: z.string().uuid(),
+  role: z.enum(["owner", "admin", "editor", "viewer"]),
+});

@@ -25,3 +25,8 @@ export type ServiceResponse<T = any> = {
   success: boolean;
   data?: T | null;
 };
+
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}

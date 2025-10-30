@@ -26,6 +26,7 @@ import {
 import type { Context } from "hono";
 import type { ServiceResponse } from "@workspace/types";
 import { z } from "zod";
+import { validationErrorResponse } from "@/utils/validation-error-response";
 
 const authRoute = new Hono();
 
@@ -69,8 +70,7 @@ const handleAuth = async (
 authRoute.post(
   "/login",
   zValidator("json", loginSchema, (result, c) => {
-    if (!result.success)
-      return c.json({ success: false, errors: result.error.flatten() }, 400);
+    if (!result.success) return validationErrorResponse(c, result.error);
   }),
   async (c) => {
     const body = c.req.valid("json");
@@ -83,8 +83,7 @@ authRoute.post(
 authRoute.post(
   "/signup",
   zValidator("json", createAccountSchema, (result, c) => {
-    if (!result.success)
-      return c.json({ success: false, errors: result.error.flatten() }, 400);
+    if (!result.success) return validationErrorResponse(c, result.error);
   }),
   async (c) => {
     const body = c.req.valid("json");
@@ -143,8 +142,7 @@ authRoute.post("/logout", async (c) => {
 authRoute.post(
   "/forgotten-password",
   zValidator("json", z.string().email(), (result, c) => {
-    if (!result.success)
-      return c.json({ success: false, errors: result.error.flatten() }, 400);
+    if (!result.success) return validationErrorResponse(c, result.error);
   }),
   async (c) => {
     const body = c.req.valid("json");
@@ -158,7 +156,7 @@ authRoute.post(
   "/reset-password",
   zValidator("json", verifyResetPasswordSchema, (result, c) => {
     if (!result.success) {
-      return c.json({ success: false, errors: result.error.flatten() }, 400);
+      return validationErrorResponse(c, result.error);
     }
   }),
   async (c) => {

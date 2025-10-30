@@ -7,6 +7,7 @@ import authRoute from "./routes/api/v1/auth";
 import { envConfig } from "./config";
 import type { Context } from "hono";
 import type { AuthType } from "./types";
+import projectsRoute from "./routes/api/v1/projects";
 
 const app = new Hono();
 
@@ -36,10 +37,8 @@ v1.get("/health", rateLimiter(60 * 1000, 5), (c) => {
 // Auth routes (15 req per hour for login/signup etc., no auth required)
 v1.route("/auth", authRoute.use(rateLimiter(60 * 60 * 1000, 15)));
 
-// Everything else requires authentication
-v1.use("*", withAuth);
-
-v1.get("/session", withAuth, (c: Context) => {
+// 80 req per hour, /session
+v1.get("/session", rateLimiter(60 * 60 * 1000, 80), withAuth, (c: Context) => {
   const user = c.get("user") as AuthType | undefined;
   return c.json({
     success: true,
@@ -47,6 +46,12 @@ v1.get("/session", withAuth, (c: Context) => {
     message: "Fetched User Session Successfully",
   });
 });
+
+// Everything else requires authentication
+v1.use("*", withAuth);
+
+// projects, 70 req per hour
+v1.route("/projects", projectsRoute.use(rateLimiter(60 * 60 * 1000, 70)));
 
 app.route("/", v1);
 
