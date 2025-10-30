@@ -1,16 +1,4 @@
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: PaginationMeta;
-}
+import type { PaginatedResponse } from "@workspace/types";
 
 export const paginate = async <T>(
   dbQuery: Promise<T[]>,

@@ -224,11 +224,7 @@ export const getValidProject = async (projectId: string) => {
   };
 };
 
-export const getProjectsByUser = async (
-  userId: string,
-  page = 1,
-  limit = 10
-) => {
+export const getProjectsByUser = (userId: string, page = 1, limit = 10) => {
   const offset = (page - 1) * limit;
 
   const dbQuery = db
@@ -246,7 +242,6 @@ export const getProjectsByUser = async (
     .limit(limit)
     .offset(offset);
 
-  // count query for pagination
   const countQuery = db
     .select({ count: count() })
     .from(projectMembers)

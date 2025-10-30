@@ -126,7 +126,14 @@ projectsRoute.get("/", async (c) => {
     limitNumber
   );
 
-  return c.json({ project }, 200);
+  return c.json(
+    {
+      data: project,
+      success: true,
+      message: "Fetched all projects successfully",
+    },
+    200
+  );
 });
 
 // project roles
