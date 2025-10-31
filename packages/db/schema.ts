@@ -66,6 +66,11 @@ export const paymentProviderEnum = pgEnum("payment_provider", [
   "paystack",
   "manual",
 ]);
+export const emailTypeEnum = pgEnum("payment_provider", [
+  "email",
+  "web",
+  "both",
+]);
 
 export const users = pgTable("users", {
   serial: serial("serial").primaryKey(),
@@ -159,6 +164,33 @@ export const emails = pgTable(
   (table) => ({
     projectIdx: index("emails_project_idx").on(table.projectId),
     statusIdx: index("emails_status_idx").on(table.status),
+  })
+);
+
+export const domains = pgTable(
+  "domains",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+
+    name: varchar("name", { length: 255 }).notNull().unique(), // e.g. "blog.john.dev"
+    verified: boolean("verified").default(false).notNull(),
+
+    dkimKey: text("dkim_key"), // public key you provide
+    txtRecord: text("txt_record"), // record user adds to DNS
+    spfRecord: text("spf_record"), // optional for sending
+    cnameRecord: text("cname_record"), // for web domain use
+
+    type: emailTypeEnum("type").default("email"),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    projectIdx: index("domains_project_idx").on(table.projectId),
+    nameIdx: uniqueIndex("domains_name_idx").on(table.name),
   })
 );
 
@@ -307,6 +339,13 @@ export const projectInviteRelations = relations(projectInvites, ({ one }) => ({
     fields: [projectInvites.invitedToUserId],
     references: [users.id],
     relationName: "invited_to_user",
+  }),
+}));
+
+export const domainRelations = relations(domains, ({ one }) => ({
+  project: one(projects, {
+    fields: [domains.projectId],
+    references: [projects.id],
   }),
 }));
 

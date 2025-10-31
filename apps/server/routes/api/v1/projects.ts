@@ -180,6 +180,7 @@ projectsRoute.get("/roles", async (c) => {
   return c.json(serviceData, routeStatus(serviceData));
 });
 
+//
 projectsRoute.post(
   "/roles/new",
   zValidator("json", inviteUserToProjectSchema, (result, c) => {
