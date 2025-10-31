@@ -62,6 +62,10 @@ export const isValidUUID = z.object({
   id: z.string().uuid("Invalid UUID format"),
 });
 
+export const isValidToken = z.object({
+  token: z.string().min(60).max(900),
+});
+
 export const newProjectInviteSchema = z.object({
   projectId: z.string().uuid(),
   invitedByUserId: z.string().uuid(),
@@ -87,3 +91,10 @@ export const inviteUserToProjectSchema = z.object({
   invitedToUserId: z.string().uuid(),
   role: z.enum(["owner", "admin", "editor", "viewer"]),
 });
+
+export const unsubscribeFromProjectSchema = z.object({
+  projectId: z.string().uuid(),
+  email: z.string().email(),
+});
+
+export type UnsubscribeRequest = z.infer<typeof unsubscribeFromProjectSchema>;

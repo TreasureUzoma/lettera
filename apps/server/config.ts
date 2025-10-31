@@ -10,4 +10,6 @@ export const envConfig = {
   REDIS_URL: process.env.REDIS_URL,
   PORT: 3005,
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+  UNSUBSCRIBE_SECRET: process.env.UNSUBSCRIBE_SECRET,
+  CLIENT_URL: process.env.CLIENT_URL,
 };

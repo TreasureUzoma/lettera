@@ -22,7 +22,12 @@ subscriptionRoutes.get(
     const pageNumber = page ? parseInt(page) : undefined;
     const limitNumber = limit ? parseInt(limit) : undefined;
 
-    const project = await getProjectOrFail(c, projectId);
+    const project = await getProjectOrFail(c, projectId, [
+      "owner",
+      "admin",
+      "editor",
+      "viewer",
+    ]);
     if (!project) return;
 
     const subscribers = await getProjectSubscribers(
@@ -41,5 +46,7 @@ subscriptionRoutes.get(
     );
   }
 );
+
+//
 
 export default subscriptionRoutes;
