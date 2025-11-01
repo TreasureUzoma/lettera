@@ -12,6 +12,8 @@ import subscriptionRoutes from "./routes/api/v1/subscriptions";
 import { success } from "zod/v4";
 import unsubscribeRoutes from "./routes/api/v1/unsubscribe";
 import externalProjectRoutes from "./routes/api/v1/external/projects";
+import profileRoutes from "./routes/api/v1/profiles";
+import postRoutes from "./routes/api/v1/posts";
 
 const app = new Hono();
 
@@ -70,6 +72,12 @@ v1.route(
   "/subscribers",
   subscriptionRoutes.use(rateLimiter(60 * 60 * 1000, 70))
 );
+
+// profile, 70 req per hour
+v1.route("/profile", profileRoutes.use(rateLimiter(60 * 60 * 1000, 70)));
+
+// posts/emails, 90 req per hour
+v1.route("/posts", postRoutes.use(rateLimiter(60 * 60 * 1000, 70)));
 
 app.route("/", v1);
 

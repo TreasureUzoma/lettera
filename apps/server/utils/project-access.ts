@@ -1,11 +1,12 @@
 import type { Context } from "hono";
 import type { AuthType } from "@/types";
 import { getValidProject, getUserProjectRole } from "@/services/projects";
+import type { ProjectRoles } from "@workspace/types";
 
 export const getProjectOrFail = async (
   c: Context,
   projectId: string,
-  allowedRoles?: string[]
+  allowedRoles?: ProjectRoles[]
 ) => {
   const cookieUser = c.get("user") as AuthType;
 
