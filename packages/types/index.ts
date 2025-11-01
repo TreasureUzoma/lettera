@@ -18,3 +18,9 @@ export interface PaginatedResponse<T> {
   data: T[];
   meta: PaginationMeta;
 }
+
+export type SubscriberStatus =
+  | "subscribed"
+  | "unsubscribed"
+  | "pending"
+  | "bounced";

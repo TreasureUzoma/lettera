@@ -30,3 +30,9 @@ export interface PaginationParams {
   page?: number;
   limit?: number;
 }
+
+export interface ExternalProjectCreate {
+  id: string;
+  name?: string;
+  keyType: string;
+}

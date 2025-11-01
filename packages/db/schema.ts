@@ -204,7 +204,7 @@ export const subscribers = pgTable(
       .references(() => projects.id, { onDelete: "cascade" }),
     name: text("name"),
     email: text("email").notNull(),
-    status: subscriberStatusEnum("status").notNull(),
+    status: subscriberStatusEnum("status").default("subscribed").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull().notNull(),
   },

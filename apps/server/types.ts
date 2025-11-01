@@ -4,6 +4,14 @@ export interface AuthType {
   name?: string;
 }
 
+export interface ExternalProjectCreate {
+  id: string;
+  projectId: string;
+  name: string;
+  email: string;
+  keyType: string;
+}
+
 export type InsertApiKey = {
   projectId: string;
   publicKey: string;

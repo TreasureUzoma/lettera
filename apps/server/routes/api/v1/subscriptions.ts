@@ -1,8 +1,16 @@
-import { getProjectSubscribers } from "@/services/subscriptions";
+import { routeStatus } from "@/lib/utils";
+import {
+  createProjectSubscriber,
+  getProjectSubscribers,
+  removeProjectSubscriber,
+} from "@/services/subscriptions";
 import { getProjectOrFail } from "@/utils/project-access";
 import { validationErrorResponse } from "@/utils/validation-error-response";
 import { zValidator } from "@hono/zod-validator";
-import { isValidUUID } from "@workspace/validations";
+import {
+  createProjectSubscriberSchema,
+  isValidUUID,
+} from "@workspace/validations";
 import { Hono } from "hono";
 
 const subscriptionRoutes = new Hono();
@@ -47,6 +55,46 @@ subscriptionRoutes.get(
   }
 );
 
-//
+// create subscriber (internal)
+subscriptionRoutes.post(
+  "/",
+  zValidator("json", createProjectSubscriberSchema, (result, c) => {
+    if (!result.success) return validationErrorResponse(c, result.error);
+  }),
+  async (c) => {
+    const body = c.req.valid("json");
+    const project = await getProjectOrFail(c, body.projectId, [
+      "owner",
+      "admin",
+    ]);
+    if (!project) return;
+    const serviceData = await createProjectSubscriber(body);
+    return c.json(serviceData, routeStatus(serviceData));
+  }
+);
+
+subscriptionRoutes.post(
+  "/delete",
+  zValidator("json", createProjectSubscriberSchema, (result, c) => {
+    if (!result.success) return validationErrorResponse(c, result.error);
+  }),
+  async (c) => {
+    const body = c.req.valid("json");
+    const project = await getProjectOrFail(c, body.projectId, [
+      "owner",
+      "admin",
+    ]);
+    if (!project) return;
+    const serviceData = await removeProjectSubscriber(
+      body.projectId,
+      body.email
+    );
+
+    if (serviceData.success == false) {
+      return c.json(serviceData, 400);
+    }
+    return c.json(serviceData, 200);
+  }
+);
 
 export default subscriptionRoutes;

@@ -11,6 +11,7 @@ import projectsRoute from "./routes/api/v1/projects";
 import subscriptionRoutes from "./routes/api/v1/subscriptions";
 import { success } from "zod/v4";
 import unsubscribeRoutes from "./routes/api/v1/unsubscribe";
+import externalProjectRoutes from "./routes/api/v1/external/projects";
 
 const app = new Hono();
 
@@ -43,6 +44,11 @@ v1.route("/auth", authRoute.use(rateLimiter(60 * 60 * 1000, 15)));
 // unsubscribe route, no auth needed too
 v1.route("/unsubscribe", unsubscribeRoutes.use(rateLimiter(60 * 1000, 5)));
 
+v1.route(
+  "/external/projects",
+  externalProjectRoutes.use(rateLimiter(60 * 1000, 9))
+);
+
 // Everything else requires authentication
 v1.use("*", withAuth);
 
@@ -59,7 +65,7 @@ v1.get("/session", rateLimiter(60 * 60 * 1000, 80), (c: Context) => {
 // projects, 70 req per hour
 v1.route("/projects", projectsRoute.use(rateLimiter(60 * 60 * 1000, 70)));
 
-// projects, 70 req per hour
+// subsribers, 70 req per hour
 v1.route(
   "/subscribers",
   subscriptionRoutes.use(rateLimiter(60 * 60 * 1000, 70))

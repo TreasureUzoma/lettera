@@ -1,14 +1,10 @@
-# shadcn/ui monorepo template
+# Lettera
 
-This template is for creating a monorepo with shadcn/ui.
+It's an opensource alternative to buttondown.
 
-## Usage
+That's all
 
-```bash
-pnpm dlx shadcn@latest init
-```
-
-## Adding components
+## Adding shadcn components
 
 To add components to your app, run the following command at the root of your `web` app:
 
@@ -27,5 +23,17 @@ Your `tailwind.config.ts` and `globals.css` are already set up to use the compon
 To use the components in your app, import them from the `ui` package.
 
 ```tsx
-import { Button } from "@workspace/ui/components/button"
+import { Button } from "@workspace/ui/components/button";
 ```
+
+## Todos
+
+Add a themes table, for users to save styles i guess
+
+Add an activity log table
+
+Add a paid type for projects
+
+tansactional emails for creating users etc
+
+i'll also have to rethink payment flows for subs and users

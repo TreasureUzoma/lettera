@@ -2,21 +2,26 @@ import { db } from "@workspace/db";
 import { projects, subscribers } from "@workspace/db/schema";
 import { eq, count, and } from "drizzle-orm";
 import { paginate } from "../utils/pagination";
-import type { UnsubscribeRequest } from "@workspace/validations";
-import type { ServiceResponse } from "@workspace/types";
-import { success } from "zod/v4";
+import type {
+  CreateSubscriber,
+  UnsubscribeRequest,
+} from "@workspace/validations";
+import type { ServiceResponse, SubscriberStatus } from "@workspace/types";
 
 export const getProjectSubscribers = (
   projectId: string,
   page = 1,
-  limit = 10
+  limit = 10,
+  status: SubscriberStatus = "subscribed"
 ) => {
   const offset = (page - 1) * limit;
 
   const subscribersData = db
     .select()
     .from(subscribers)
-    .where(eq(subscribers.projectId, projectId))
+    .where(
+      and(eq(subscribers.projectId, projectId), eq(subscribers.status, status))
+    )
     .limit(limit)
     .offset(offset);
 
@@ -26,6 +31,57 @@ export const getProjectSubscribers = (
     .where(eq(subscribers.projectId, projectId));
 
   return paginate(subscribersData, countResult, page, limit);
+};
+
+export const createProjectSubscriber = async (body: CreateSubscriber) => {
+  try {
+    const subscriber = await db
+      .insert(subscribers)
+      .values({
+        name: body?.name ?? null,
+        email: body.email,
+        projectId: body.projectId,
+      })
+      .returning();
+
+    return {
+      success: true,
+      data: subscriber,
+      message: "Created subscriber successfully.",
+    };
+  } catch (err) {
+    return {
+      success: false,
+      data: null,
+      message:
+        err instanceof Error ? err.message : "Failed to create subscriber.",
+    };
+  }
+};
+
+export const removeProjectSubscriber = async (
+  projectId: string,
+  email: string
+) => {
+  try {
+    await db
+      .delete(subscribers)
+      .where(
+        and(eq(subscribers.projectId, projectId), eq(subscribers.email, email))
+      );
+
+    return {
+      data: null,
+      message: `Removed subscriber (${email}).`,
+      success: true,
+    };
+  } catch (err) {
+    return {
+      data: null,
+      message: "Failed to remove subscriber",
+      success: true,
+    };
+  }
 };
 
 export const getProjectSubscriberExistence = async (
