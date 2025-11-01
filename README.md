@@ -37,3 +37,17 @@ Add a paid type for projects
 tansactional emails for creating users etc
 
 i'll also have to rethink payment flows for subs and users
+
+POST /emails → create draft
+
+PATCH /emails/:id → update draft
+
+POST /emails/:id/send → send now
+
+GET /emails → list project’s emails
+
+(optional) POST /emails/:id/schedule → schedule send
+
+---
+
+endpoint to update emaill/password

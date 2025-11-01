@@ -1,5 +1,53 @@
 import { z } from "zod";
 
+const USERNAME_REGEX = /^[a-z0-9_-]+$/;
+
+export const BANNED_USERNAMES = [
+  "about",
+  "account",
+  "admin",
+  "api",
+  "app",
+  "auth",
+  "billing",
+  "blog",
+  "contact",
+  "dashboard",
+  "developer",
+  "developers",
+  "docs",
+  "email",
+  "emails",
+  "external",
+  "help",
+  "legal",
+  "login",
+  "logout",
+  "payments",
+  "post",
+  "posts",
+  "pricing",
+  "privacy",
+  "profile",
+  "register",
+  "root",
+  "route",
+  "safety",
+  "security",
+  "settings",
+  "signup",
+  "status",
+  "support",
+  "terms",
+  "user",
+  "users",
+  "www",
+];
+
+const BANNED_SET = new Set(
+  BANNED_USERNAMES.map((name) => name.toLowerCase().trim())
+);
+
 export const loginSchema = z.object({
   email: z.string().trim().email(),
   password: z
@@ -62,6 +110,25 @@ export const isValidUUID = z.object({
   id: z.string().uuid("Invalid UUID format"),
 });
 
+export const isValidUsername = z.object({
+  username: z
+    .string()
+    .min(3, { message: "Username must be at least 3 characters long." })
+    .max(20, { message: "Username must be 20 characters or less." })
+    .trim()
+    .toLowerCase()
+    .regex(USERNAME_REGEX, {
+      message:
+        "Username must only contain lowercase letters, numbers, hyphens (-), or underscores (_).",
+    })
+    .refine(
+      (value) => !BANNED_SET.has(value),
+      (value) => ({
+        message: `The username '${value}' is reserved and cannot be used.`,
+      })
+    ),
+});
+
 export const isValidToken = z.object({
   token: z.string().min(60).max(900),
 });
@@ -106,3 +173,44 @@ export const createProjectSubscriberSchema = z.object({
 });
 
 export type CreateSubscriber = z.infer<typeof createProjectSubscriberSchema>;
+
+export const updateProfileSchema = z
+  .object({
+    name: z
+      .string({
+        invalid_type_error: "Name must be a string.",
+      })
+      .min(1, { message: "Name cannot be empty." })
+      .max(50, { message: "Name must be 50 characters or less." })
+      .optional(),
+
+    username: z
+      .string({
+        invalid_type_error: "Username must be a string.",
+      })
+      .min(3, { message: "Username must be at least 3 characters long." })
+      .max(20, { message: "Username must be 20 characters or less." })
+      .trim()
+      .toLowerCase()
+      .regex(USERNAME_REGEX, {
+        message:
+          "Username must only contain lowercase letters, numbers, hyphens (-), or underscores (_).",
+      })
+      .refine(
+        (value) => !BANNED_SET.has(value),
+        (value) => ({
+          message: `The username '${value}' is reserved and cannot be used.`,
+        })
+      )
+      .optional(),
+
+    avatarUrl: z
+      .string({
+        invalid_type_error: "Avatar URL must be a string.",
+      })
+      .url({ message: "Invalid URL format for avatar." })
+      .nullish(),
+  })
+  .partial();
+
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
