@@ -112,7 +112,7 @@ export function Pricings() {
               </CardDescription>
             </div>
             <div className="text-right">
-              <div className="text-4xl font-bold">
+              <div className="text-xl md:text-4xl font-bold">
                 {pricing.totalPrice !== null
                   ? `$${pricing.totalPrice.toFixed(2)}`
                   : "custom"}
