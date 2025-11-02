@@ -12,7 +12,7 @@ export default function Template({ children }: { children: ReactNode }) {
     <div>
       {children}
       <Analytics
-        url="https://supametrics-go-server.onrender.com"
+        url="supm_3451b50e5446a3f7d00c964a00ded61d"
         client="supm_cbc38e2f61b88a9f3d1f75d300595d14"
       />
     </div>
