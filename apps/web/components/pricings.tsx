@@ -138,7 +138,7 @@ export function Pricings() {
                   extra subscribers ({pricing.overageCount.toLocaleString()} × $
                   {plan.overage!.toFixed(2)}/1k)
                 </span>
-                <span className="font-medium">
+                <span className="font-medium md:text-sm">
                   ${pricing.overagePrice.toFixed(2)}
                 </span>
               </div>

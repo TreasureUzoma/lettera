@@ -17,7 +17,8 @@ export const Hero = () => {
             get started for free <ArrowRight size={16} className="inline" />
           </Link>
           <Link href="/docs" className="underline hover:text-muted-foreground">
-            read documentations
+            read <span className="hidden md:inline">documentations</span>
+            <span className="md:hidden">docs</span>
           </Link>
         </div>
       </div>
