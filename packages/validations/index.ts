@@ -214,3 +214,12 @@ export const updateProfileSchema = z
   .partial();
 
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
+
+export const insertPostSchema = z.object({
+  subject: z.string().min(4).max(30),
+  body: z.string().min(2).max(6000),
+  status: z.enum(["published", "draft"]),
+  projectId: z.string().uuid(),
+});
+
+export type InsertPost = z.infer<typeof insertPostSchema>;

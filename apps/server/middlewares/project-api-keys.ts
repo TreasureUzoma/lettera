@@ -56,18 +56,11 @@ export const projectApiKey: MiddlewareHandler = async (c, next) => {
   if (privateKey) {
     try {
       const decryptedPrivateKey = await decryptDataSubtle(
-        privateKey,
+        keyRecord.encryptedSecretKey,
         envConfig.ENCRYPTION_KEY || ""
       );
 
-      const privateMatch = await db.query.projectApiKeys.findFirst({
-        where: and(
-          eq(projectApiKeys.projectId, keyRecord.projectId),
-          eq(projectApiKeys.encryptedSecretKey, decryptedPrivateKey)
-        ),
-      });
-
-      if (!privateMatch || privateMatch.revokedAt) {
+      if (privateKey !== decryptedPrivateKey) {
         return c.json(
           {
             success: false,

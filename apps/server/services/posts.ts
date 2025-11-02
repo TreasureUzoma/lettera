@@ -4,15 +4,22 @@ import type { InsertPost } from "@workspace/validations";
 import type { ServiceResponse } from "@workspace/types";
 import { emails, projectMembers } from "@workspace/db/schema";
 import { sendEmailNewsletter } from "./mail/external";
+import { decryptDataSubtle, encryptDataSubtle } from "@/lib/encrypt";
+import { envConfig } from "@/config";
 
 export const createProjectPostDraft = async (
   body: InsertPost
 ): Promise<ServiceResponse<InsertPost>> => {
   try {
+    const encryptedBody = await encryptDataSubtle(
+      body.body,
+      envConfig.ENCRYPTION_KEY || ""
+    );
     const [newPost] = await db
       .insert(emails)
       .values({
         ...body,
+        body: encryptedBody,
       })
       .returning();
 
@@ -43,13 +50,28 @@ export const updateProjectPost = async (
   body: Partial<InsertPost>
 ): Promise<ServiceResponse<InsertPost>> => {
   try {
-    const fieldsToUpdate: Partial<typeof emails.$inferInsert> = body;
+    const fieldsToUpdate: Partial<typeof emails.$inferInsert> = { ...body };
+
+    // encrypt body if it exists
+    if (body.body) {
+      fieldsToUpdate.body = await encryptDataSubtle(
+        body.body,
+        envConfig.ENCRYPTION_KEY || ""
+      );
+    }
 
     const [updatedPost] = await db
       .update(emails)
       .set(fieldsToUpdate)
       .where(eq(emails.id, postId))
       .returning();
+
+    if (updatedPost?.body) {
+      updatedPost.body = await decryptDataSubtle(
+        updatedPost.body,
+        envConfig.ENCRYPTION_KEY || ""
+      );
+    }
 
     if (body.status === "published") {
       await sendEmailNewsletter();
@@ -94,8 +116,20 @@ export const getAllProjectPosts = async (
       .from(emails)
       .innerJoin(projectMembers, eq(emails.projectId, projectMembers.projectId))
       .where(eq(projectMembers.userId, userId));
+
+    // decrypt all post bodies
+    const decryptedPosts = await Promise.all(
+      userPosts.map(async (post) => ({
+        ...post,
+        body: await decryptDataSubtle(
+          post.body,
+          envConfig.ENCRYPTION_KEY || ""
+        ),
+      }))
+    );
+
     return {
-      data: userPosts,
+      data: decryptedPosts,
       success: true,
       message: "User posts fetched successfully.",
     };

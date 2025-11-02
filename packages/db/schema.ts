@@ -40,12 +40,7 @@ export const userSubscriptionEnum = pgEnum("user_subscription", [
   "pro",
   "enterprise",
 ]);
-export const emailStatusEnum = pgEnum("email_status", [
-  "sent",
-  "delivered",
-  "failed",
-  "opened",
-]);
+export const emailStatusEnum = pgEnum("email_status", ["published", "draft"]);
 export const subscriberStatusEnum = pgEnum("subscriber_status", [
   "subscribed",
   "unsubscribed",
@@ -157,7 +152,7 @@ export const emails = pgTable(
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
     subject: text("subject").notNull(),
-    body: text("body").notNull(),
+    body: text("body").notNull(), // encrypted
     sentAt: timestamp("sent_at").defaultNow().notNull().notNull(),
     status: emailStatusEnum("status").notNull(),
   },
