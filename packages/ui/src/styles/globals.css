@@ -118,10 +118,74 @@
 }
 
 @layer base {
+  ::selection {
+    @apply bg-primary/10;
+  }
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 300%;
+  height: 300%;
+  pointer-events: none;
+  background-image: url("https://bedes.qui.gg/images/framernoise.png");
+  opacity: 0.08;
+  z-index: 100;
+  animation:
+    fadeInGrain 2s ease forwards,
+    animateGrain 8s steps(10) infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeInGrain {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0.08;
+  }
+}
+
+/* Shake animation */
+@keyframes animateGrain {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  10% {
+    transform: translate(-5%, -10%);
+  }
+  20% {
+    transform: translate(-15%, -20%);
+  }
+  30% {
+    transform: translate(-5%, -10%);
+  }
+  40% {
+    transform: translate(-15%, -20%);
+  }
+  50% {
+    transform: translate(-5%, -10%);
+  }
+  60% {
+    transform: translate(-15%, -20%);
+  }
+  70% {
+    transform: translate(-5%, -10%);
+  }
+  80% {
+    transform: translate(-15%, -20%);
+  }
+  90% {
+    transform: translate(-5%, -10%);
   }
 }

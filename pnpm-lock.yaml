@@ -122,6 +122,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@workspace/constants':
+        specifier: workspace:*
+        version: link:../../packages/constants
       '@workspace/ui':
         specifier: workspace:*
         version: link:../../packages/ui

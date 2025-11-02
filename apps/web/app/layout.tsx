@@ -4,6 +4,8 @@ import "@workspace/ui/globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
 import { Metadata } from "next";
+import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -16,7 +18,7 @@ const fontMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Next.Js app in a monorepo",
+  title: "lettera - opensoure alternative to buttondown",
 };
 
 export default function RootLayout({
@@ -30,7 +32,9 @@ export default function RootLayout({
         className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased `}
       >
         <Providers>
-          {children}
+          <Header />
+          <main>{children}</main>
+          <Footer />
           <Toaster />
         </Providers>
       </body>
