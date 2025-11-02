@@ -143,6 +143,9 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.2.0(react@19.2.0)
+      supametrics:
+        specifier: ^1.0.1
+        version: 1.0.1(react@19.2.0)
     devDependencies:
       '@types/node':
         specifier: ^20.19.9
@@ -3993,6 +3996,11 @@ packages:
         optional: true
       babel-plugin-macros:
         optional: true
+
+  supametrics@1.0.1:
+    resolution: {integrity: sha512-IfcsjPvEmzAvJqWJDMf0Ot7rmIMj59cZ/6BkVIUSNphXQvNvPqOBJRcm6Fe4jJk9nX6njrv8DyTpoCniHOerGA==}
+    peerDependencies:
+      react: '>=16.8.0'
 
   supports-color@5.5.0:
     resolution: {integrity: sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow==}
@@ -8113,6 +8121,10 @@ snapshots:
       react: 19.2.0
     optionalDependencies:
       '@babel/core': 7.28.5
+
+  supametrics@1.0.1(react@19.2.0):
+    dependencies:
+      react: 19.2.0
 
   supports-color@5.5.0:
     dependencies:
