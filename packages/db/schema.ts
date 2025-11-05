@@ -61,11 +61,7 @@ export const paymentProviderEnum = pgEnum("payment_provider", [
   "paystack",
   "manual",
 ]);
-export const emailTypeEnum = pgEnum("payment_provider", [
-  "email",
-  "web",
-  "both",
-]);
+export const emailTypeEnum = pgEnum("email_type", ["email", "web", "both"]);
 
 export const users = pgTable("users", {
   serial: serial("serial").primaryKey(),
@@ -255,7 +251,7 @@ export const payments = pgTable(
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "set null",
     }),
-    provider: paymentProviderEnum("provider").notNull().default("stripe"),
+    provider: paymentProviderEnum("provider").notNull(),
     amount: integer("amount").notNull(),
     currency: text("currency").notNull().default("USD"),
     reference: text("reference").notNull().unique(),

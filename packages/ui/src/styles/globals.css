@@ -127,9 +127,15 @@
   body {
     @apply bg-background text-foreground;
   }
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+  .flex-between {
+    @apply flex items-center justify-between;
+  }
 }
 
-body::after {
+.has-grain::after {
   content: "";
   position: fixed;
   top: 0;
@@ -145,7 +151,6 @@ body::after {
     animateGrain 8s steps(10) infinite;
 }
 
-/* Fade in animation */
 @keyframes fadeInGrain {
   0% {
     opacity: 0;
@@ -155,7 +160,6 @@ body::after {
   }
 }
 
-/* Shake animation */
 @keyframes animateGrain {
   0%,
   100% {
