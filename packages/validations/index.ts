@@ -66,7 +66,10 @@ export const createAccountSchema = z.object({
     .trim()
     .min(7, "Password must be at least 7 characters")
     .max(50, "Password must be less than 50 characters"),
-  name: z.string().min(2).max(30),
+  name: z
+    .string()
+    .min(2, "Fullname must be at least 2 characters")
+    .max(30, "Fullname is too long"),
 });
 
 export type Signup = z.infer<typeof createAccountSchema>;

@@ -6,7 +6,15 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**"],
-      "env": ["DB_URL", "REDIS_URL", "UNSUBSCRIBE_SECRET"]
+      "env": [
+        "DB_URL",
+        "REDIS_URL",
+        "UNSUBSCRIBE_SECRET",
+        "DOCS_SITE",
+        "DASHBOARD_SITE",
+        "API_URL",
+        "WEB_URL"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -17,7 +25,15 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["REDIS_URL", "DB_URL", "UNSUBSCRIBE_SECRET"]
+      "passThroughEnv": [
+        "REDIS_URL",
+        "DB_URL",
+        "UNSUBSCRIBE_SECRET",
+        "DOCS_SITE",
+        "DASHBOARD_SITE",
+        "API_URL",
+        "WEB_URL"
+      ]
     }
   },
   "globalEnv": ["IMPORTANT_GLOBAL_VARIABLE"]

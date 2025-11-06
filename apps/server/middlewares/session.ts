@@ -132,6 +132,9 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
     return await next();
   } catch (err) {
     console.error("Auth middleware error:", err);
-    return c.json({ message: "Unauthorized", success: false }, 401);
+    return c.json(
+      { message: "Unauthorized (middleware)", success: false },
+      401
+    );
   }
 };

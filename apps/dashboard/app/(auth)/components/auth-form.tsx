@@ -21,8 +21,11 @@ import { Button } from "@workspace/ui/components/button";
 import { GithubLogo, GoogleLogo } from "@workspace/ui/components/icons";
 import { useForm } from "react-hook-form";
 import { loginSchema, createAccountSchema } from "@workspace/validations";
+import { useLoginMutation, useSignupMutation } from "@/hooks/use-auth";
+import { getAuthButtonLabel } from "../utils/labels";
+import { ErrorParagraph } from "@workspace/ui/components/error-message";
 
-interface AuthProps {
+export interface AuthProps {
   mode:
     | "login"
     | "signup"
@@ -33,6 +36,12 @@ interface AuthProps {
 }
 
 export function AuthForm({ mode, className }: AuthProps) {
+  const { mutate: loginMutate, isPending: loginPending } = useLoginMutation();
+  const { mutate: signupMutate, isPending: signupPending } =
+    useSignupMutation();
+
+  const isPending = loginPending || signupPending;
+
   const titles = {
     login: "Welcome back",
     signup: "Create your account",
@@ -59,6 +68,7 @@ export function AuthForm({ mode, className }: AuthProps) {
 
   // fallback type for all possible inputs
   type BaseFormValues = {
+    name?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
@@ -74,15 +84,13 @@ export function AuthForm({ mode, className }: AuthProps) {
     mode: "onBlur",
   });
 
-  // pick the correct schema
   const schema = isSignup ? createAccountSchema : isLogin ? loginSchema : null;
 
-  // manual onBlur validation
   const handleBlur = async (
     e: React.FocusEvent<HTMLInputElement>,
     fieldName: keyof BaseFormValues
   ) => {
-    if (!schema) return; // no schema for verify/reset/forgot
+    if (!schema) return; // no schema for verify/reset/forgot yet
     const value = e.target.value;
     const currentData = { [fieldName]: value };
 
@@ -98,7 +106,36 @@ export function AuthForm({ mode, className }: AuthProps) {
   };
 
   const onSubmit = (data: BaseFormValues) => {
-    console.log("Form data:", data);
+    if (schema) {
+      const result = schema.safeParse(data);
+      if (!result.success) {
+        result.error.issues.forEach((issue) => {
+          setError(issue.path[0] as keyof BaseFormValues, {
+            type: "manual",
+            message: issue.message,
+          });
+        });
+        return; // stop submission
+      }
+    }
+
+    if (mode === "login") {
+      const payload = {
+        email: data.email!,
+        password: data.password!,
+      };
+      loginMutate(payload);
+    } else if (mode === "signup") {
+      const payload = {
+        name: data.name!,
+        email: data.email!,
+        password: data.password!,
+      };
+      signupMutate(payload);
+    } else if (mode === "forgot-password") {
+    } else if (mode === "reset-password") {
+    } else if (mode === "verify-email") {
+    }
   };
 
   return (
@@ -133,7 +170,23 @@ export function AuthForm({ mode, className }: AuthProps) {
 
               {(isLogin || isSignup || isForgot || isReset) && (
                 <>
-                  {/* EMAIL */}
+                  {isSignup && (
+                    <Field>
+                      <FieldLabel htmlFor="name">Full Name</FieldLabel>
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="Full Name"
+                        {...register("name")}
+                        onBlur={(e) => handleBlur(e, "name")}
+                        required
+                      />
+                      {errors.name && (
+                        <ErrorParagraph>{errors.name.message}</ErrorParagraph>
+                      )}
+                    </Field>
+                  )}
+
                   <Field>
                     <FieldLabel htmlFor="email">Email</FieldLabel>
                     <Input
@@ -145,13 +198,10 @@ export function AuthForm({ mode, className }: AuthProps) {
                       required
                     />
                     {errors.email && (
-                      <p className="text-sm text-destructive mt-1">
-                        {errors.email.message}
-                      </p>
+                      <ErrorParagraph>{errors.email.message}</ErrorParagraph>
                     )}
                   </Field>
 
-                  {/* PASSWORD */}
                   {(isLogin || isSignup || isReset) && (
                     <Field>
                       <div className="flex items-center">
@@ -173,9 +223,9 @@ export function AuthForm({ mode, className }: AuthProps) {
                         required
                       />
                       {errors.password && (
-                        <p className="text-sm text-destructive mt-1">
+                        <ErrorParagraph>
                           {errors.password.message}
-                        </p>
+                        </ErrorParagraph>
                       )}
                     </Field>
                   )}
@@ -193,16 +243,15 @@ export function AuthForm({ mode, className }: AuthProps) {
                         required
                       />
                       {errors.confirmPassword && (
-                        <p className="text-sm text-destructive mt-1">
+                        <ErrorParagraph>
                           {errors.confirmPassword.message}
-                        </p>
+                        </ErrorParagraph>
                       )}
                     </Field>
                   )}
                 </>
               )}
 
-              {/* VERIFY EMAIL */}
               {isVerify && (
                 <FieldDescription className="text-center">
                   We’ve sent you an email with a verification link.
@@ -216,19 +265,10 @@ export function AuthForm({ mode, className }: AuthProps) {
                 </FieldDescription>
               )}
 
-              {/* SUBMIT */}
               {!isVerify && (
                 <Field>
-                  <Button type="submit" className="w-full">
-                    {isLogin
-                      ? "Login"
-                      : isSignup
-                        ? "Sign up"
-                        : isForgot
-                          ? "Send reset link"
-                          : isReset
-                            ? "Update password"
-                            : "Continue"}
+                  <Button type="submit" className="w-full" disabled={isPending}>
+                    {getAuthButtonLabel({ mode, isPending })}
                   </Button>
 
                   {(isLogin || isSignup) && (

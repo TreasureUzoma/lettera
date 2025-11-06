@@ -1,5 +1,4 @@
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
 
 export const Hero = () => {
   return (
@@ -13,13 +12,15 @@ export const Hero = () => {
           and built for developers.
         </p>
         <div className="space-x-6">
-          <Link href="/login" className="underline hover:text-muted-foreground">
-            get started for free <ArrowRight size={16} className="inline" />
-          </Link>
-          <Link href="/docs" className="underline hover:text-muted-foreground">
+          <a href="/login" className="underline hover:text-muted-foreground">
+            <span>
+              get started for free <ArrowRight size={16} className="inline" />
+            </span>
+          </a>
+          <a href="/docs" className="underline hover:text-muted-foreground">
             read <span className="hidden md:inline">documentations</span>
             <span className="md:hidden">docs</span>
-          </Link>
+          </a>
         </div>
       </div>
     </section>
