@@ -1,15 +1,18 @@
-export const envConfig = {
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
-  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
-  SERVER_PROD_URL: process.env.SERVER_PROD_URL,
-  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SCRET,
-  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SCRET,
-  NODE_ENV: process.env.NODE_ENV,
-  REDIS_URL: process.env.REDIS_URL,
-  PORT: 3005,
-  ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
-  UNSUBSCRIBE_SECRET: process.env.UNSUBSCRIBE_SECRET,
-  CLIENT_URL: process.env.CLIENT_URL,
-};
+import { z } from "zod";
+
+const envSchema = z.object({
+  GOOGLE_CLIENT_ID: z.string(),
+  GOOGLE_CLIENT_SECRET: z.string(),
+  GITHUB_CLIENT_ID: z.string(),
+  GITHUB_CLIENT_SECRET: z.string(),
+  APP_URL: z.string(),
+  JWT_REFRESH_SECRET: z.string(),
+  JWT_ACCESS_SECRET: z.string(),
+  NODE_ENV: z.string().default("development"),
+  REDIS_URL: z.string(),
+  PORT: z.coerce.number().default(3005),
+  ENCRYPTION_KEY: z.string(),
+  UNSUBSCRIBE_SECRET: z.string(),
+});
+
+export const envConfig = envSchema.parse(process.env);

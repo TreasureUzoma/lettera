@@ -20,12 +20,12 @@ export const generateTokens = async (
 
   const accessToken = await sign(
     { id: userId, email, name, exp: accessExp },
-    envConfig.JWT_ACCESS_SECRET!
+    envConfig.JWT_ACCESS_SECRET
   );
 
   const refreshToken = await sign(
     { id: userId, exp: refreshExp },
-    envConfig.JWT_REFRESH_SECRET!
+    envConfig.JWT_REFRESH_SECRET
   );
 
   return { accessToken, refreshToken, refreshExpDate };
@@ -38,7 +38,7 @@ export const storeRefreshToken = async (
   userAgent: string
 ): Promise<void> => {
   await insertAuthRefreshToken({
-    id: userId,
+    userId,
     expiresAt: refreshExpDate,
     userAgent,
     token: refreshToken,
@@ -54,7 +54,7 @@ export const setAuthCookies = async (
     c,
     "letteraAccessToken",
     accessToken,
-    envConfig.JWT_ACCESS_SECRET!,
+    envConfig.JWT_ACCESS_SECRET,
     {
       httpOnly: true,
       secure: envConfig.NODE_ENV === "production",
@@ -68,7 +68,7 @@ export const setAuthCookies = async (
     c,
     "letteraRefreshToken",
     refreshToken,
-    envConfig.JWT_REFRESH_SECRET!,
+    envConfig.JWT_REFRESH_SECRET,
     {
       httpOnly: true,
       secure: envConfig.NODE_ENV === "production",
@@ -84,7 +84,7 @@ export const clearAuthCookies = async (c: Context): Promise<void> => {
     c,
     "letteraAccessToken",
     "",
-    envConfig.JWT_ACCESS_SECRET!,
+    envConfig.JWT_ACCESS_SECRET,
     {
       httpOnly: true,
       secure: envConfig.NODE_ENV === "production",
@@ -98,7 +98,7 @@ export const clearAuthCookies = async (c: Context): Promise<void> => {
     c,
     "letteraRefreshToken",
     "",
-    envConfig.JWT_REFRESH_SECRET!,
+    envConfig.JWT_REFRESH_SECRET,
     {
       httpOnly: true,
       secure: envConfig.NODE_ENV === "production",

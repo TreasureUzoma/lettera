@@ -13,7 +13,7 @@ export const projectApiKey: MiddlewareHandler = async (c, next) => {
     return c.json(
       {
         success: false,
-        message: `Unauthorized: Missing x-lettera-public-key header. See ${envConfig.CLIENT_URL}/docs/auth for setup instructions.`,
+        message: `Unauthorized: Missing x-lettera-public-key header. See ${envConfig.APP_URL}/docs/auth for setup instructions.`,
         data: null,
       },
       401

@@ -72,14 +72,14 @@ To get this project up and running locally, follow these steps:
     GOOGLE_CLIENT_SECRET=your_google_client_secret
     GITHUB_CLIENT_ID=your_github_client_id
     GITHUB_CLIENT_SECRET=your_github_client_secret
-    SERVER_PROD_URL=http://localhost:3005 # Your server's URL
+    APP_URL=http://localhost:3005 # Your server's URL
     JWT_REFRESH_SECRET=a_very_secret_refresh_key
     JWT_ACCESS_SECRET=a_very_secret_access_key
     NODE_ENV=development
     REDIS_URL=redis://localhost:6379 # Your Redis connection string
     ENCRYPTION_KEY=a_32_byte_hex_string_for_aes_gcm # e.g., bun -e "console.log(crypto.randomBytes(32).toString('hex'))"
     UNSUBSCRIBE_SECRET=a_secret_for_unsubscribe_tokens
-    CLIENT_URL=http://localhost:3000 # Your frontend client URL
+    APP_URL=http://localhost:3000 # Your frontend client URL
     # Database connection string (for Drizzle ORM)
     DATABASE_URL="postgresql://user:password@host:port/database"
     ```
@@ -113,7 +113,7 @@ The backend exposes a RESTful API. Below are some high-level examples of how you
 - **Register**: `POST /api/v1/auth/signup` with `{ email, password, name }`
 - **Login**: `POST /api/v1/auth/login` with `{ email, password }`
 - **Logout**: `POST /api/v1/auth/logout`
-- **OAuth (GitHub/Google)**: `POST /api/v1/auth/github` or `POST /api/v1/auth/google`
+- **OAuth (GitHub/Google)**: `POST /api/v1/auth/github/url` or `POST /api/v1/auth/google/url`
 
 ### Projects
 

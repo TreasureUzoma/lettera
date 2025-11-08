@@ -80,18 +80,17 @@ export const verifyResetPasswordSchema = z.object({
     .trim()
     .min(7, "Password must be at least 7 characters")
     .max(50, "Password must be less than 50 characters"),
-  token: z.string().uuid(),
+  token: z.string().uuid("Invalid Token"),
 });
 
 export type VerifyResetPassword = z.infer<typeof verifyResetPasswordSchema>;
 
-export const createOauthUserSchema = z.object({
-  provider: z.enum(["google", "github"]),
-  providerId: z.string().min(1),
-  name: z.string().min(1),
+export const verifyEmailSchema = z.object({
   email: z.string().email(),
-  avatarUrl: z.string().url().optional(),
+  token: z.string().uuid("Invalid Token"),
 });
+
+export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
 
 export const createProjectSchema = z.object({
   name: z.string().min(1).max(35),
@@ -111,6 +110,10 @@ export type UpdateProject = z.infer<typeof updateProjectSchema>;
 
 export const isValidUUID = z.object({
   id: z.string().uuid("Invalid UUID format"),
+});
+
+export const isValidEmail = z.object({
+  email: z.string().email("Invalid email format"),
 });
 
 export const isValidUsername = z.object({

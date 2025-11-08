@@ -13,7 +13,17 @@
         "DOCS_SITE",
         "DASHBOARD_SITE",
         "API_URL",
-        "WEB_URL"
+        "WEB_URL",
+        "ENCRYPTION_KEY",
+        "JWT_ACCESS_SECRET",
+        "JWT_REFRESH_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "APP_URL",
+        "NODE_ENV",
+        "PORT"
       ]
     },
     "lint": {
@@ -26,13 +36,23 @@
       "cache": false,
       "persistent": true,
       "passThroughEnv": [
-        "REDIS_URL",
         "DB_URL",
+        "REDIS_URL",
         "UNSUBSCRIBE_SECRET",
         "DOCS_SITE",
         "DASHBOARD_SITE",
         "API_URL",
-        "WEB_URL"
+        "WEB_URL",
+        "ENCRYPTION_KEY",
+        "JWT_ACCESS_SECRET",
+        "JWT_REFRESH_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "APP_URL",
+        "NODE_ENV",
+        "PORT"
       ]
     }
   },

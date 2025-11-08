@@ -36,3 +36,7 @@ export interface ExternalProjectCreate {
   name?: string;
   keyType: string;
 }
+
+export type OauthType = "google" | "github";
+
+export type OauthParamErros = "missing_code" | "auth_failed";

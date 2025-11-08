@@ -44,13 +44,4 @@ i'll also have to rethink payment flows for subs and users
 
 endpoint to update emaill/password
 
-todo: {success: false, message: "undefined is not an object (evaluating 'key.includes')", data: null}
-data
-:
-null
-message
-:
-"undefined is not an object (evaluating 'key.includes')"
-success
-:
-false feat auth
+todo: rework on verify email flow

@@ -1,6 +1,5 @@
 import { envConfig } from "@/config";
 import type {
-  NewUser,
   GitHubTokenData,
   GitHubEmail,
   GitHubUser,
@@ -8,6 +7,8 @@ import type {
   Login,
   Signup,
   VerifyResetPassword,
+  OauthType,
+  VerifyEmail,
 } from "@workspace/types";
 
 import { google } from "googleapis";
@@ -16,11 +17,36 @@ import { passwordResets, refreshTokens, users } from "@workspace/db/schema";
 import { and, eq } from "drizzle-orm";
 import { sendForgottenPasswordEmail, sendWelcomeEmail } from "./mail/internal";
 
+const GOOGLE_REDIRECT_URI = `${envConfig.APP_URL}/api/v1/auth/google/callback`;
+const GITHUB_REDIRECT_URI = `${envConfig.APP_URL}/api/v1/auth/github/callback`;
+
 const oauth2Client = new google.auth.OAuth2(
   envConfig.GOOGLE_CLIENT_ID,
   envConfig.GOOGLE_CLIENT_SECRET,
-  `${envConfig.SERVER_PROD_URL}/api/v1/auth/google/callback`
+  GOOGLE_REDIRECT_URI
 );
+
+export const getGoogleAuthUrl = () => {
+  const scopes = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+  ];
+
+  return oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: scopes.join(" "),
+  });
+};
+
+export const getGithubAuthUrl = () => {
+  const params = new URLSearchParams({
+    client_id: envConfig.GITHUB_CLIENT_ID,
+    redirect_uri: GITHUB_REDIRECT_URI,
+    scope: "user:email",
+  });
+
+  return `https://github.com/login/oauth/authorize?${params.toString()}`;
+};
 
 const getGithubUserInfo = async (code: string) => {
   const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
@@ -29,8 +55,8 @@ const getGithubUserInfo = async (code: string) => {
       Accept: "application/json",
     },
     body: new URLSearchParams({
-      client_id: envConfig.GITHUB_CLIENT_ID!,
-      client_secret: envConfig.GITHUB_CLIENT_SECRET!,
+      client_id: envConfig.GITHUB_CLIENT_ID,
+      client_secret: envConfig.GITHUB_CLIENT_SECRET,
       code,
     }),
   });
@@ -61,38 +87,50 @@ const getGithubUserInfo = async (code: string) => {
   };
 };
 
-export const createOauthUser = async (data: NewUser & { code?: string }) => {
-  if (data.authMethod === "google") {
-    const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
-    const { data: userInfo } = await oauth2.userinfo.get();
-
-    if (!userInfo.email || !userInfo.id) {
-      return {
-        message: "Invalid Google user data",
-        data: null,
-        success: false,
-      };
-    }
-
-    return await upsertUser({
-      providerId: userInfo.id,
-      email: userInfo.email,
-      name: userInfo.name || "Unknown",
-      authMethod: "google",
-      avatarUrl: userInfo.picture || null,
-    });
+export const createOauthUser = async (method: OauthType, code?: string) => {
+  if (!code) {
+    return {
+      message: `Missing ${method} authorization code`,
+      data: null,
+      success: false,
+    };
   }
 
-  if (data.authMethod === "github") {
-    if (!data.code) {
+  if (method === "google") {
+    try {
+      const { tokens } = await oauth2Client.getToken(code);
+      oauth2Client.setCredentials(tokens);
+
+      const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+      const { data: userInfo } = await oauth2.userinfo.get();
+
+      if (!userInfo.email || !userInfo.id) {
+        return {
+          message: "Invalid Google user data",
+          data: null,
+          success: false,
+        };
+      }
+
+      return await upsertUser({
+        providerId: userInfo.id,
+        email: userInfo.email,
+        name: userInfo.name || "Unknown",
+        authMethod: "google",
+        avatarUrl: userInfo.picture || null,
+      });
+    } catch (error) {
+      console.error("Google token exchange failed:", error);
       return {
-        message: "Missing GitHub code",
+        message: "Google authentication failed",
         data: null,
         success: false,
       };
     }
+  }
 
-    const userInfo = await getGithubUserInfo(data.code);
+  if (method === "github") {
+    const userInfo = await getGithubUserInfo(code);
     if (!userInfo.email) {
       return {
         message: "GitHub user has no public email",
@@ -181,19 +219,20 @@ export const login = async (payload: Login) => {
 
   const foundUser = rows[0];
   if (!foundUser || !foundUser.password) {
-    // Generic message for security
     return { success: false, message: "Invalid email or password", data: null };
   }
 
-  const valid = await Bun.password.verify(password!, foundUser.password);
+  const valid = await Bun.password.verify(password, foundUser.password);
   if (!valid) {
-    // Generic message for security
     return { success: false, message: "Invalid email or password", data: null };
   }
+
+  const { password: _, createdAt, updatedAt, ...safeUser } = foundUser;
+
   return {
     success: true,
     message: "Password matched",
-    data: foundUser,
+    data: safeUser,
   };
 };
 
@@ -295,4 +334,32 @@ export const verifyResetPassword = async (payload: VerifyResetPassword) => {
     .where(eq(passwordResets.token, payload.token));
 
   return { success: true, message: "Password reset successfully" };
+};
+
+export const verifyEmail = async (payload: VerifyEmail) => {
+  const [resetRecord] = await db
+    .select()
+    .from(passwordResets)
+    .where(
+      and(
+        eq(passwordResets.token, payload.token),
+        eq(passwordResets.used, false)
+      )
+    )
+    .limit(1);
+
+  if (!resetRecord) {
+    return { success: false, message: "Invalid or used token" };
+  }
+
+  if (resetRecord.expiresAt < new Date()) {
+    return { success: false, message: "Token expired" };
+  }
+
+  await db
+    .update(users)
+    .set({ emailVerifiedAt: new Date() })
+    .where(eq(users.id, resetRecord.userId));
+
+  return { success: true, message: "Email verified successfully" };
 };

@@ -20,10 +20,23 @@ import { Input } from "@workspace/ui/components/input";
 import { Button } from "@workspace/ui/components/button";
 import { GithubLogo, GoogleLogo } from "@workspace/ui/components/icons";
 import { useForm } from "react-hook-form";
-import { loginSchema, createAccountSchema } from "@workspace/validations";
-import { useLoginMutation, useSignupMutation } from "@/hooks/use-auth";
+import {
+  loginSchema,
+  createAccountSchema,
+  isValidEmail,
+  verifyResetPasswordSchema,
+} from "@workspace/validations";
+import {
+  useForgotPassword,
+  useLoginMutation,
+  useOauthSigninMutation,
+  useResetPassowrd,
+  useSignupMutation,
+} from "@/hooks/use-auth";
 import { getAuthButtonLabel } from "../utils/labels";
 import { ErrorParagraph } from "@workspace/ui/components/error-message";
+import { Spinner } from "@workspace/ui/components/spinner";
+import { descriptions, titles } from "../utils/data";
 
 export interface AuthProps {
   mode:
@@ -32,34 +45,24 @@ export interface AuthProps {
     | "forgot-password"
     | "verify-email"
     | "reset-password";
+  token?: string;
   className?: string;
 }
 
-export function AuthForm({ mode, className }: AuthProps) {
+export function AuthForm({ mode, className, token }: AuthProps) {
   const { mutate: loginMutate, isPending: loginPending } = useLoginMutation();
   const { mutate: signupMutate, isPending: signupPending } =
     useSignupMutation();
+  const { mutate: ouathMutate, isPending: oauthPending } =
+    useOauthSigninMutation();
+  const { mutate: forgotMutate, isPending: forgotPending } =
+    useForgotPassword();
+  const { mutate: resetPassMutate, isPending: resetPassPending } =
+    useResetPassowrd();
 
-  const isPending = loginPending || signupPending;
+  const isPending =
+    loginPending || signupPending || forgotPending || resetPassPending;
 
-  const titles = {
-    login: "Welcome back",
-    signup: "Create your account",
-    "forgot-password": "Forgot your password?",
-    "verify-email": "Verify your email",
-    "reset-password": "Reset your password",
-  };
-
-  const descriptions = {
-    login: "Choose your preferred method to sign in to your account.",
-    signup:
-      "Start your newsletter journey with your preferred authentication method.",
-    "forgot-password":
-      "Enter your email and we’ll send you a password reset link.",
-    "verify-email":
-      "We’ve sent a verification link to your email. Please check your inbox.",
-    "reset-password": "Enter your new password below.",
-  };
   const isLogin = mode === "login";
   const isSignup = mode === "signup";
   const isForgot = mode === "forgot-password";
@@ -84,13 +87,19 @@ export function AuthForm({ mode, className }: AuthProps) {
     mode: "onBlur",
   });
 
-  const schema = isSignup ? createAccountSchema : isLogin ? loginSchema : null;
+  const schema = isSignup
+    ? createAccountSchema
+    : isLogin
+      ? loginSchema
+      : isForgot
+        ? isValidEmail
+        : null;
 
   const handleBlur = async (
     e: React.FocusEvent<HTMLInputElement>,
     fieldName: keyof BaseFormValues
   ) => {
-    if (!schema) return; // no schema for verify/reset/forgot yet
+    if (!schema) return;
     const value = e.target.value;
     const currentData = { [fieldName]: value };
 
@@ -133,7 +142,20 @@ export function AuthForm({ mode, className }: AuthProps) {
       };
       signupMutate(payload);
     } else if (mode === "forgot-password") {
+      forgotMutate(data.email!);
     } else if (mode === "reset-password") {
+      const payload = {
+        token: token!,
+        password: data.password!,
+      };
+      if (data.password !== data.confirmPassword) {
+        setError("confirmPassword", {
+          type: "manual",
+          message: "Passwords must mtch",
+        });
+        return;
+      }
+      resetPassMutate(payload);
     } else if (mode === "verify-email") {
     }
   };
@@ -152,13 +174,23 @@ export function AuthForm({ mode, className }: AuthProps) {
               {(isLogin || isSignup) && (
                 <>
                   <Field>
-                    <Button variant="outline" type="button">
+                    <Button
+                      variant="outline"
+                      type="button"
+                      disabled={oauthPending}
+                      onClick={() => ouathMutate("github")}
+                    >
                       <GithubLogo />
-                      Continue with Github
+                      {oauthPending ? <Spinner /> : "Continue with Github"}
                     </Button>
-                    <Button variant="outline" type="button">
+                    <Button
+                      variant="outline"
+                      type="button"
+                      disabled={oauthPending}
+                      onClick={() => ouathMutate("google")}
+                    >
                       <GoogleLogo />
-                      Continue with Google
+                      {oauthPending ? <Spinner /> : "Continue with Google"}
                     </Button>
                   </Field>
 
@@ -187,25 +219,29 @@ export function AuthForm({ mode, className }: AuthProps) {
                     </Field>
                   )}
 
-                  <Field>
-                    <FieldLabel htmlFor="email">Email</FieldLabel>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="m@example.com"
-                      {...register("email")}
-                      onBlur={(e) => handleBlur(e, "email")}
-                      required
-                    />
-                    {errors.email && (
-                      <ErrorParagraph>{errors.email.message}</ErrorParagraph>
-                    )}
-                  </Field>
+                  {mode !== "reset-password" && (
+                    <Field>
+                      <FieldLabel htmlFor="email">Email</FieldLabel>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="m@example.com"
+                        {...register("email")}
+                        onBlur={(e) => handleBlur(e, "email")}
+                        required
+                      />
+                      {errors.email && (
+                        <ErrorParagraph>{errors.email.message}</ErrorParagraph>
+                      )}
+                    </Field>
+                  )}
 
                   {(isLogin || isSignup || isReset) && (
                     <Field>
                       <div className="flex items-center">
-                        <FieldLabel htmlFor="password">Password</FieldLabel>
+                        <FieldLabel htmlFor="password">
+                          {mode === "reset-password" && "New "}Password
+                        </FieldLabel>
                         {isLogin && (
                           <Link
                             href="/forgot-password"

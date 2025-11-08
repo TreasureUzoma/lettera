@@ -1,8 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@workspace/axios";
-import type { Login, Signup } from "@workspace/validations";
+import type {
+  Login,
+  Signup,
+  VerifyResetPassword,
+} from "@workspace/validations";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import type { OauthType } from "@workspace/types/auth";
 
 export const useLoginMutation = () => {
   const queryClint = useQueryClient();
@@ -32,6 +37,41 @@ export const useSignupMutation = () => {
     },
     onError: (err) => {
       toast.error(err?.message ?? "Failed to create account");
+    },
+  });
+};
+
+export const useOauthSigninMutation = () => {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (method: OauthType) => api(`/auth/${method}/url`),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      router.push(res.data.url);
+    },
+    onError: (err) => {
+      toast.error(err?.message ?? "Something went wrong");
+    },
+  });
+};
+
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: async (email: string) =>
+      api.post("/auth/forgotten-password", { email }),
+    onError: (err) => {
+      toast.error(err?.message ?? "Failed to send password reset link");
+    },
+  });
+};
+
+export const useResetPassowrd = () => {
+  return useMutation({
+    mutationFn: (body: VerifyResetPassword) =>
+      api.post("/auth/reset-password", body),
+    onError: (err) => {
+      toast.error(err?.message ?? "Failed to reset password.");
     },
   });
 };

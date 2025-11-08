@@ -34,7 +34,7 @@ unsubscribeRoutes.post(
       envConfig.UNSUBSCRIBE_SECRET!
     );
 
-    const confirmUrl = `${envConfig.CLIENT_URL}/unsubscribe/confirm?token=${token}`;
+    const confirmUrl = `${envConfig.APP_URL}/unsubscribe/confirm?token=${token}`;
 
     await sendUnsubscribeCofirmationEmail(
       body.email,

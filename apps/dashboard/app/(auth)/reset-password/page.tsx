@@ -1,30 +1,28 @@
 import { Metadata } from "next";
 import { AuthForm } from "../components/auth-form";
-import { OauthParamErros } from "@workspace/types";
 import { Alert, AlertTitle } from "@workspace/ui/components/alert";
 import { AlertCircleIcon } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Login - Lettera",
+  title: "Reset Password - Lettera",
 };
 
-export default async function LoginPage({
+export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: OauthParamErros | undefined }>;
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
-  const VALID_OAUTH_ERRORS: OauthParamErros[] = ["missing_code", "auth_failed"];
-  const error = (await searchParams).error;
+  const token = (await searchParams).token;
   return (
     <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="flex w-full flex-col gap-6 flex-center">
-        {error && VALID_OAUTH_ERRORS.includes(error) && (
+        {!token && (
           <Alert variant="destructive">
             <AlertCircleIcon />
-            <AlertTitle>Error occured {error}.</AlertTitle>
+            <AlertTitle>Invalid token</AlertTitle>
           </Alert>
         )}
-        <AuthForm mode="login" />
+        <AuthForm mode="reset-password" token={token} />
       </div>
     </div>
   );

@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import {
-  createOauthUserSchema,
   loginSchema,
   createAccountSchema,
   verifyResetPasswordSchema,
+  isValidEmail,
+  verifyEmailSchema,
 } from "@workspace/validations";
 import {
   login,
@@ -13,6 +14,9 @@ import {
   deleteAuthRefreshToken,
   forgotPassword,
   verifyResetPassword,
+  getGoogleAuthUrl,
+  getGithubAuthUrl,
+  verifyEmail,
 } from "@/services/auth";
 import { getSignedCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
@@ -66,7 +70,6 @@ const handleAuth = async (
   );
 };
 
-// login
 authRoute.post(
   "/login",
   zValidator("json", loginSchema, (result, c) => {
@@ -79,7 +82,6 @@ authRoute.post(
   }
 );
 
-// signup
 authRoute.post(
   "/signup",
   zValidator("json", createAccountSchema, (result, c) => {
@@ -92,29 +94,70 @@ authRoute.post(
   }
 );
 
-// github oauth
-authRoute.post(
-  "/github",
-  zValidator("json", createOauthUserSchema),
-  async (c) => {
-    const body = c.req.valid("json");
-    const serviceData = await createOauthUser(body);
-    return handleAuth(c, serviceData);
-  }
-);
+authRoute.get("/google/url", (c) => {
+  return c.json({ url: getGoogleAuthUrl() }, 200);
+});
 
-// google oauth
-authRoute.post(
-  "/google",
-  zValidator("json", createOauthUserSchema),
-  async (c) => {
-    const body = c.req.valid("json");
-    const serviceData = await createOauthUser(body);
-    return handleAuth(c, serviceData);
-  }
-);
+authRoute.get("/google/callback", async (c) => {
+  const code = c.req.query("code");
 
-// logout
+  if (!code) {
+    return c.redirect("/login?error=missing_code", 302);
+  }
+
+  const serviceData = await createOauthUser("google", code);
+
+  if (serviceData.success && serviceData.data?.id) {
+    const { id, email, name } = serviceData.data;
+    const userAgent = c.req.header("User-Agent") || "unknown";
+
+    const { accessToken, refreshToken, refreshExpDate } = await generateTokens(
+      id,
+      email,
+      name || "-"
+    );
+
+    await storeRefreshToken(id, refreshToken, refreshExpDate, userAgent);
+    await setAuthCookies(c, accessToken, refreshToken);
+
+    return c.redirect("/dashboard", 302);
+  }
+
+  return c.redirect("/login?error=auth_failed", 302);
+});
+
+authRoute.get("/github/url", (c) => {
+  return c.json({ url: getGithubAuthUrl() }, 200);
+});
+
+authRoute.get("/github/callback", async (c) => {
+  const code = c.req.query("code");
+
+  if (!code) {
+    return c.redirect("/login?error=missing_code", 302);
+  }
+
+  const serviceData = await createOauthUser("github", code);
+
+  if (serviceData.success && serviceData.data?.id) {
+    const { id, email, name } = serviceData.data;
+    const userAgent = c.req.header("User-Agent") || "unknown";
+
+    const { accessToken, refreshToken, refreshExpDate } = await generateTokens(
+      id,
+      email,
+      name || "-"
+    );
+
+    await storeRefreshToken(id, refreshToken, refreshExpDate, userAgent);
+    await setAuthCookies(c, accessToken, refreshToken);
+
+    return c.redirect("/dashboard", 302);
+  }
+
+  return c.redirect("/login?error=auth_failed", 302);
+});
+
 authRoute.post("/logout", async (c) => {
   const refreshToken = await getSignedCookie(
     c,
@@ -138,20 +181,18 @@ authRoute.post("/logout", async (c) => {
   return c.json({ message: "Logout successful", success: true }, 200);
 });
 
-// forgot pwd
 authRoute.post(
   "/forgotten-password",
-  zValidator("json", z.string().email(), (result, c) => {
+  zValidator("json", isValidEmail, (result, c) => {
     if (!result.success) return validationErrorResponse(c, result.error);
   }),
   async (c) => {
     const body = c.req.valid("json");
-    const serviceData = await forgotPassword(body);
+    const serviceData = await forgotPassword(body.email);
     return c.json(serviceData, 200);
   }
 );
 
-// reset password
 authRoute.post(
   "/reset-password",
   zValidator("json", verifyResetPasswordSchema, (result, c) => {
@@ -162,6 +203,25 @@ authRoute.post(
   async (c) => {
     const body = c.req.valid("json");
     const serviceData = await verifyResetPassword(body);
+
+    if (!serviceData.success) {
+      return c.json(serviceData, 400);
+    }
+
+    return c.json(serviceData, 200);
+  }
+);
+
+authRoute.post(
+  "/verify-email",
+  zValidator("json", verifyEmailSchema, (result, c) => {
+    if (!result.success) {
+      return validationErrorResponse(c, result.error);
+    }
+  }),
+  async (c) => {
+    const body = c.req.valid("json");
+    const serviceData = await verifyEmail(body);
 
     if (!serviceData.success) {
       return c.json(serviceData, 400);
