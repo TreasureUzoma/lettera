@@ -1,36 +1,43 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import "@workspace/ui/globals.css";
 import "./globals.css";
 import QueryProvider from "@/providers/tanstack-query";
 import { Toaster } from "sonner";
+import { Providers } from "@/components/providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+export const switzer = {
+  variable: "--font-switzer",
+  className: "font-switzer",
+};
+
+export const geistMono = Geist_Mono({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Lettera - Simplest newsletter tool you'd ever use.",
+  title: "Lettera – Simplest newsletter tool you'd ever use.",
+  description:
+    "Lettera makes newsletters effortless for developers. Write, send, and grow your audience with a minimal workflow.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${switzer.variable} ${geistMono.variable} font-[Switzer] antialiased`}
       >
-        <QueryProvider>{children}</QueryProvider>
-        <Toaster />
+        <Providers>
+          <QueryProvider>
+            {children}
+            <Toaster />
+          </QueryProvider>
+        </Providers>
       </body>
     </html>
   );

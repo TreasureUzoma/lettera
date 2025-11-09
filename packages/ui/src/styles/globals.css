@@ -7,6 +7,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+  font-family: "Switzer";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("https://idolo.dev/fonts/Switzer-Variable.woff2") format("woff2");
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -192,4 +200,16 @@
   90% {
     transform: translate(-5%, -10%);
   }
+}
+
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
 }

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@workspace/axios";
 import type {
   Login,
@@ -8,6 +8,7 @@ import type {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { OauthType } from "@workspace/types/auth";
+import { UserProfile } from "@workspace/types/res/user";
 
 export const useLoginMutation = () => {
   const queryClint = useQueryClient();
@@ -72,6 +73,16 @@ export const useResetPassowrd = () => {
       api.post("/auth/reset-password", body),
     onError: (err) => {
       toast.error(err?.message ?? "Failed to reset password.");
+    },
+  });
+};
+
+export const useGetProfile = () => {
+  return useQuery<UserProfile>({
+    queryKey: ["session"],
+    queryFn: async () => {
+      const { data: res } = await api(`/profile`);
+      return res.data;
     },
   });
 };
