@@ -229,3 +229,20 @@ export const insertPostSchema = z.object({
 });
 
 export type InsertPost = z.infer<typeof insertPostSchema>;
+
+export const dashboardOverviewSchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(10),
+  sort: z
+    .enum([
+      "name",
+      "activity",
+      "newest",
+      "oldest",
+      "revenue",
+      "subscribers",
+    ])
+    .optional(),
+});
+
+export type DashboardOverview = z.infer<typeof dashboardOverviewSchema>;

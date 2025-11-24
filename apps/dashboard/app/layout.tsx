@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${switzer.variable} ${geistMono.variable} font-[Switzer] antialiased`}
+        className={`${switzer.variable} ${geistMono.variable} bg-background font-[Switzer] antialiased`}
       >
         <Providers>
           <QueryProvider>

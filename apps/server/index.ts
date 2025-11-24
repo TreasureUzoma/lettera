@@ -14,6 +14,7 @@ import unsubscribeRoutes from "./routes/api/v1/unsubscribe";
 import externalProjectRoutes from "./routes/api/v1/external/projects";
 import profileRoutes from "./routes/api/v1/profiles";
 import postRoutes from "./routes/api/v1/posts";
+import dashboardRoute from "./routes/api/v1/dashboard";
 
 const app = new Hono();
 
@@ -78,6 +79,9 @@ v1.route("/profile", profileRoutes.use(rateLimiter(60 * 60 * 1000, 70)));
 
 // posts/emails, 90 req per hour
 v1.route("/posts", postRoutes.use(rateLimiter(60 * 60 * 1000, 70)));
+
+// dashboard, 70 req per hour
+v1.route("/dashboard", dashboardRoute.use(rateLimiter(60 * 60 * 1000, 70)));
 
 app.route("/", v1);
 
