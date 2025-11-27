@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { Globe, Lock, Loader2 } from "lucide-react";
 import { cn } from "@workspace/ui/lib/utils";
 import { toast } from "sonner";
+import { Textarea } from "@workspace/ui/components/textarea";
 
 export function CreateProjectForm({ username }: { username: string }) {
   const router = useRouter();
@@ -29,6 +30,7 @@ export function CreateProjectForm({ username }: { username: string }) {
       name: "",
       fromEmail: `${username}@nnewsletter.lettera.dev`,
       isPublic: true,
+      description: "",
     },
   });
 
@@ -62,6 +64,20 @@ export function CreateProjectForm({ username }: { username: string }) {
               <FormLabel>Project Name</FormLabel>
               <FormControl>
                 <Input placeholder="My Awesome Project" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea placeholder="Description" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

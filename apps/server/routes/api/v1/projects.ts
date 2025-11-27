@@ -8,6 +8,7 @@ import {
   inviteUserToProject,
   updateProject,
   updateProjectMemberRole,
+  getProjectMembers,
 } from "@/services/projects";
 import type { AppBindings, AuthType } from "@/types";
 import { Hono } from "hono";
@@ -109,6 +110,24 @@ projectsRoute.get(
     const project = await getProjectOrFail(c, projectId);
     if (!project) return;
     return c.json({ project }, 200);
+  }
+);
+
+// get project members
+projectsRoute.get(
+  "/:id/members",
+  zValidator("param", isValidUUID, (result, c) => {
+    if (!result.success) {
+      return validationErrorResponse(c, result.error);
+    }
+  }),
+  async (c) => {
+    const { id: projectId } = c.req.valid("param");
+    const project = await getProjectOrFail(c, projectId);
+    if (!project) return;
+
+    const serviceData = await getProjectMembers(projectId);
+    return c.json(serviceData, routeStatus(serviceData));
   }
 );
 

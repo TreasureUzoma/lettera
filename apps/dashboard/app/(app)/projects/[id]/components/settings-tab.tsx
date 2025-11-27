@@ -17,7 +17,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -38,11 +37,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog";
+import { ApiKeysTab as ProjectApiKeysTab } from "./api-keys-tab";
+import { MembersTab } from "./members-tab";
+import { Textarea } from "@workspace/ui/components/textarea";
+import { ProjectIdTab } from "./project-id-tab";
 
 interface SettingsTabProps {
   project: {
     id: string;
     name: string;
+    description: string;
     isPublic: boolean;
     isPrivateAt: string | null;
   };
@@ -58,6 +62,7 @@ export function SettingsTab({ project }: SettingsTabProps) {
     resolver: zodResolver(updateProjectSchema),
     defaultValues: {
       name: project.name,
+      description: project?.description,
       isPublic: !project.isPrivateAt,
     },
   });
@@ -90,6 +95,20 @@ export function SettingsTab({ project }: SettingsTabProps) {
                     <FormLabel>Project Name</FormLabel>
                     <FormControl>
                       <Input placeholder="My Awesome Project" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Description" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -157,6 +176,10 @@ export function SettingsTab({ project }: SettingsTabProps) {
           </Button>
         </CardFooter>
       </Card>
+
+      <ProjectIdTab projectId={project.id} />
+      <ProjectApiKeysTab projectId={project.id} />
+      <MembersTab projectId={project.id} />
 
       <Card className="border-destructive/50">
         <CardHeader>

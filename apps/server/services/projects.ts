@@ -5,7 +5,7 @@ import { db } from "@workspace/db";
 import { projectApiKeys, projectInvites, projects, subscribers } from "@workspace/db/schema";
 import type { ProjectRoles, ServiceResponse } from "@workspace/types";
 import type { NewProject, NewProjectInvite } from "@workspace/validations";
-import { projectMembers } from "@workspace/db/schema";
+import { projectMembers, users } from "@workspace/db/schema";
 
 import { and, count, desc, eq, isNull } from "drizzle-orm";
 import { paginate } from "@/utils/pagination";
@@ -559,6 +559,41 @@ export const updateProjectMemberRole = async (
         err instanceof Error
           ? err.message
           : "Something went wrong updating the project member's role.",
+    };
+  }
+};
+
+export const getProjectMembers = async (
+  projectId: string
+): Promise<ServiceResponse> => {
+  try {
+    const members = await db
+      .select({
+        userId: projectMembers.userId,
+        role: projectMembers.role,
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+        },
+      })
+      .from(projectMembers)
+      .innerJoin(users, eq(projectMembers.userId, users.id))
+      .where(eq(projectMembers.projectId, projectId));
+
+    return {
+      success: true,
+      message: "Fetched project members successfully",
+      data: members,
+    };
+  } catch (err) {
+    if (err instanceof Error) {
+      return { success: false, message: err.message, data: null };
+    }
+    return {
+      success: false,
+      message: "Something went wrong fetching project members",
+      data: null,
     };
   }
 };

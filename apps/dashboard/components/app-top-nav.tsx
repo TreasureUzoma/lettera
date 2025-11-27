@@ -45,14 +45,14 @@ export default function AppTopNav() {
   const projectTabs = [
     { label: "Overview", value: "overview", href: `/projects/${projectId}` },
     {
-      label: "Subscribers",
-      value: "subscribers",
-      href: `/projects/${projectId}/subscribers`,
-    },
-    {
       label: "Analytics",
       value: "analytics",
       href: `/projects/${projectId}/analytics`,
+    },
+    {
+      label: "Subscribers",
+      value: "subscribers",
+      href: `/projects/${projectId}/subscribers`,
     },
     {
       label: "Settings",

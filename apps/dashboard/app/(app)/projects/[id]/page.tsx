@@ -4,7 +4,6 @@ import { useProject } from "@/hooks/use-project";
 import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
-import { ApiKeysTab } from "./components/api-keys-tab";
 
 export default function ProjectIdPage() {
   const params = useParams();
@@ -36,11 +35,7 @@ export default function ProjectIdPage() {
   }
 
   return (
-    <div className="space-y-6 min-h-screen px-4 my-12 flex-col flex">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-      </div>
-
+    <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
@@ -74,10 +69,6 @@ export default function ProjectIdPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-      
-      <div className="mt-8">
-        <ApiKeysTab projectId={project.id} />
       </div>
     </div>
   );

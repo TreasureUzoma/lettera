@@ -1,7 +1,6 @@
 "use client";
 
 import { useProjectApiKeys } from "@/hooks/use-project-api-keys";
-import { Button } from "@workspace/ui/components/button";
 import {
   Card,
   CardContent,
@@ -9,17 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
+import { CopyButton } from "@workspace/ui/components/copy-button";
 import { Input } from "@workspace/ui/components/input";
-import { Copy, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function ApiKeysTab({ projectId }: { projectId: string }) {
   const { data: apiKeys, isLoading } = useProjectApiKeys(projectId);
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
-  };
 
   if (isLoading) {
     return (
@@ -44,13 +39,10 @@ export function ApiKeysTab({ projectId }: { projectId: string }) {
               <div className="grid flex-1 gap-2">
                 <Input readOnly value={key.publicKey} />
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => copyToClipboard(key.publicKey)}
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
+              <CopyButton
+                content={key.publicKey}
+                onCopy={() => toast.success("Copied to clipboard")}
+              />
             </div>
           ))}
           {(!apiKeys || apiKeys.length === 0) && (
