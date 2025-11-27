@@ -1,9 +1,11 @@
 "use client";
 
 import { Card } from "@workspace/ui/components/card";
+import Link from "next/link";
+import { Project } from "@workspace/constants/types/projects";
 
 interface ProjectListProps {
-  projects?: any[]; // Replace with proper type
+  projects?: Project[]; 
 }
 
 export function ProjectList({ projects }: ProjectListProps) {
@@ -21,7 +23,10 @@ export function ProjectList({ projects }: ProjectListProps) {
   return (
     <div>
       <h2 className="font-semibold mb-4">Projects</h2>
+
+      <div className="">
       {projects.map((project) => (
+        <Link href={`/projects/${project.id}`}>
         <Card
           key={project.id}
           className="py-4 my-3 hover:bg-accent/50 rounded-sm px-2 cursor-pointer"
@@ -31,7 +36,9 @@ export function ProjectList({ projects }: ProjectListProps) {
             {project.description || "No description"}
           </p>
         </Card>
+        </Link>
       ))}
+      </div>
     </div>
   );
 }

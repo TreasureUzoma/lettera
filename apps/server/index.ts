@@ -9,7 +9,6 @@ import type { Context } from "hono";
 import type { AuthType } from "./types";
 import projectsRoute from "./routes/api/v1/projects";
 import subscriptionRoutes from "./routes/api/v1/subscriptions";
-import { success } from "zod/v4";
 import unsubscribeRoutes from "./routes/api/v1/unsubscribe";
 import externalProjectRoutes from "./routes/api/v1/external/projects";
 import profileRoutes from "./routes/api/v1/profiles";

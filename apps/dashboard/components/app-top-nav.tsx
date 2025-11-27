@@ -16,9 +16,14 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@workspace/ui/components/avatar";
+import { usePathname, useParams } from "next/navigation";
+import { ProjectSwitcher } from "./project-switcher";
 
 export default function AppTopNav() {
   const [scrollY, setScrollY] = React.useState(0);
+  const pathname = usePathname();
+  const params = useParams();
+  const projectId = params.id as string;
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -29,13 +34,35 @@ export default function AppTopNav() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const tabs = [
+  const globalTabs = [
     { label: "Projects", value: "projects", href: "/projects" },
     { label: "Billings", value: "billings", href: "/billings" },
     { label: "Integrations", value: "integrations", href: "/integrations" },
     { label: "Settings", value: "settings", href: "/settings" },
     { label: "Docs", value: "docs", href: "/docs" },
   ];
+
+  const projectTabs = [
+    { label: "Overview", value: "overview", href: `/projects/${projectId}` },
+    {
+      label: "Subscribers",
+      value: "subscribers",
+      href: `/projects/${projectId}/subscribers`,
+    },
+    {
+      label: "Analytics",
+      value: "analytics",
+      href: `/projects/${projectId}/analytics`,
+    },
+    {
+      label: "Settings",
+      value: "settings",
+      href: `/projects/${projectId}/settings`,
+    },
+  ];
+
+  const isProjectRoute = pathname.startsWith("/projects/") && projectId;
+  const tabs = isProjectRoute ? projectTabs : globalTabs;
 
   const { data: profileData, isLoading: profileLoading } = useGetProfile();
   return (
@@ -73,6 +100,17 @@ export default function AppTopNav() {
                 </span>
               )}
             </div>
+            {isProjectRoute && (
+              <>
+                <Separator
+                  orientation="vertical"
+                  className={cn(
+                    "h-7 w-[2px] rotate-[12deg] origin-center bg-muted-foreground/20 transition-all duration-500"
+                  )}
+                />
+                <ProjectSwitcher />
+              </>
+            )}
           </div>
           <div className="flex items-center justify-end gap-2">
             <Button

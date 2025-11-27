@@ -21,6 +21,7 @@ export const BANNED_USERNAMES = [
   "external",
   "help",
   "legal",
+  "lettera",
   "login",
   "logout",
   "payments",
@@ -29,6 +30,7 @@ export const BANNED_USERNAMES = [
   "pricing",
   "privacy",
   "profile",
+  "projects",
   "register",
   "root",
   "route",
@@ -94,6 +96,7 @@ export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
 
 export const createProjectSchema = z.object({
   name: z.string().min(1).max(35),
+  description: z.string().max(255).optional(),
   isPublic: z.boolean(),
   fromEmail: z.string().email(),
 });
@@ -102,6 +105,7 @@ export type NewProject = z.infer<typeof createProjectSchema>;
 
 export const updateProjectSchema = z.object({
   name: z.string().min(1).max(35).optional(),
+  description: z.string().max(255).optional(),
   isPublic: z.boolean().optional(),
   fromEmail: z.string().email().optional(),
 });

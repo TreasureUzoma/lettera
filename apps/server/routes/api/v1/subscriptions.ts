@@ -2,6 +2,7 @@ import { routeStatus } from "@/lib/utils";
 import {
   createProjectSubscriber,
   getProjectSubscribers,
+  getRecentSubscribers,
   removeProjectSubscriber,
 } from "@/services/subscriptions";
 import { getProjectOrFail } from "@/utils/project-access";
@@ -43,6 +44,38 @@ subscriptionRoutes.get(
       pageNumber,
       limitNumber
     );
+
+    return c.json(
+      {
+        data: subscribers,
+        success: true,
+        message: "Fetched project subscribers successfully",
+      },
+      200
+    );
+  }
+);
+
+subscriptionRoutes.get(
+  "/:id/recent",
+  zValidator("param", isValidUUID, (result, c) => {
+    if (!result.success) {
+      return validationErrorResponse(c, result.error);
+    }
+  }),
+  async (c) => {
+    const { id: projectId } = c.req.valid("param");
+
+
+    const project = await getProjectOrFail(c, projectId, [
+      "owner",
+      "admin",
+      "editor",
+      "viewer",
+    ]);
+    if (!project) return;
+
+    const subscribers = await getRecentSubscribers(projectId);
 
     return c.json(
       {

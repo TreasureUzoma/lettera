@@ -2,7 +2,7 @@ import { decryptDataSubtle, encryptDataSubtle } from "@/lib/encrypt";
 import { generateApiKeys } from "@/lib/utils";
 import type { InsertApiKey } from "@/types";
 import { db } from "@workspace/db";
-import { projectApiKeys, projectInvites, projects } from "@workspace/db/schema";
+import { projectApiKeys, projectInvites, projects, subscribers } from "@workspace/db/schema";
 import type { ProjectRoles, ServiceResponse } from "@workspace/types";
 import type { NewProject, NewProjectInvite } from "@workspace/validations";
 import { projectMembers } from "@workspace/db/schema";
@@ -23,6 +23,7 @@ export const createProject = async (
       .insert(projects)
       .values({
         name: data.name,
+        description: data.description,
       })
       .returning();
     await db.insert(projectMembers).values({
@@ -67,6 +68,7 @@ export const updateProject = async (
   try {
     const updateValues: Record<string, any> = {};
     if (data.name !== undefined) updateValues.name = data.name;
+    if (data.description !== undefined) updateValues.description = data.description;
     if (data.isPublic !== undefined) updateValues.isPublic = data.isPublic;
     if (data.fromEmail !== undefined) updateValues.fromEmail = data.fromEmail;
 
@@ -231,13 +233,24 @@ export const getProjectsByUser = (userId: string, page = 1, limit = 10) => {
     .select({
       id: projects.id,
       name: projects.name,
+      description: projects.description,
       createdAt: projects.createdAt,
       updatedAt: projects.updatedAt,
       role: projectMembers.role,
+      subscriberCount: count(subscribers.id),
     })
     .from(projects)
     .innerJoin(projectMembers, eq(projects.id, projectMembers.projectId))
+    .leftJoin(subscribers, eq(projects.id, subscribers.projectId))
     .where(eq(projectMembers.userId, userId))
+    .groupBy(
+      projects.id,
+      projects.name,
+      projects.description,
+      projects.createdAt,
+      projects.updatedAt,
+      projectMembers.role
+    )
     .orderBy(desc(projects.createdAt))
     .limit(limit)
     .offset(offset);

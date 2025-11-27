@@ -1,6 +1,6 @@
 import { db } from "@workspace/db";
 import { projects, subscribers } from "@workspace/db/schema";
-import { eq, count, and } from "drizzle-orm";
+import { eq, count, and, desc } from "drizzle-orm";
 import { paginate } from "../utils/pagination";
 import type {
   CreateSubscriber,
@@ -148,6 +148,38 @@ export const confirmUnsubscribe = async (body: UnsubscribeRequest) => {
         err instanceof Error
           ? err.message
           : "Failed to unsubscribe from project.",
+    };
+  }
+};
+
+export const getRecentSubscribers = async (projectId: string, limit = 5) => {
+  try {
+    const recentSubscribers = await db
+      .select({
+        id: subscribers.id,
+        email: subscribers.email,
+        name: subscribers.name,
+        status: subscribers.status,
+        createdAt: subscribers.createdAt,
+      })
+      .from(subscribers)
+      .where(eq(subscribers.projectId, projectId))
+      .orderBy(desc(subscribers.createdAt))
+      .limit(limit);
+
+    return {
+      success: true,
+      data: recentSubscribers,
+      message: "Fetched recent subscribers successfully",
+    };
+  } catch (err) {
+    return {
+      success: false,
+      data: null,
+      message:
+        err instanceof Error
+          ? err.message
+          : "Something went wrong fetching recent subscribers",
     };
   }
 };
