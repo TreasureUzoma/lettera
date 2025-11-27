@@ -22,6 +22,8 @@ const nextConfig = {
       "settings",
       "settings/:path",
       "activity",
+      "username",
+      "username/:path",
     ];
 
     const staticRoutes = [

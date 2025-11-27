@@ -86,3 +86,17 @@ export const useGetProfile = () => {
     },
   });
 };
+
+export const useUpdateProfile = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: any) => api.patch("/profile", body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+      toast.success("Profile updated successfully");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Failed to update profile");
+    },
+  });
+};

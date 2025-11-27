@@ -72,25 +72,19 @@ export const updateUserProfile = async (
       };
     }
 
-    const result = await db.transaction(async (tx) => {
-      const [updatedUser] = await tx
-        .update(users)
-        .set(fieldsToUpdate)
-        .where(eq(users.id, userId))
-        .returning({
-          id: users.id,
-          name: users.name,
-          username: users.username,
-          email: users.email,
-          avatarUrl: users.avatarUrl,
-        });
+    const [updatedUser] = await db
+      .update(users)
+      .set(fieldsToUpdate)
+      .where(eq(users.id, userId))
+      .returning({
+        id: users.id,
+        name: users.name,
+        username: users.username,
+        email: users.email,
+        avatarUrl: users.avatarUrl,
+      });
 
-      if (!updatedUser) {
-        tx.rollback();
-        return null;
-      }
-      return updatedUser;
-    });
+    const result = updatedUser;
 
     if (!result) {
       return {

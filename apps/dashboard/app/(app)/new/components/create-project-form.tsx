@@ -21,13 +21,13 @@ import { Globe, Lock, Loader2 } from "lucide-react";
 import { cn } from "@workspace/ui/lib/utils";
 import { toast } from "sonner";
 
-export function CreateProjectForm() {
+export function CreateProjectForm({ username }: { username: string }) {
   const router = useRouter();
   const form = useForm<NewProject>({
     resolver: zodResolver(createProjectSchema),
     defaultValues: {
       name: "",
-      fromEmail: "",
+      fromEmail: `${username}@nnewsletter.lettera.dev`,
       isPublic: true,
     },
   });
@@ -75,8 +75,11 @@ export function CreateProjectForm() {
             <FormItem>
               <FormLabel>From Email</FormLabel>
               <FormControl>
-                <Input placeholder="noreply@myproject.com" {...field} />
+                <Input {...field} disabled />
               </FormControl>
+              <p className="text-[0.8rem] text-muted-foreground">
+                This is your fixed sender address.
+              </p>
               <FormMessage />
             </FormItem>
           )}
