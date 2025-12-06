@@ -104,13 +104,15 @@ CREATE TABLE "projects" (
 	"serial" serial PRIMARY KEY NOT NULL,
 	"id" uuid DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
+	"slug" text NOT NULL,
 	"description" text,
 	"config" jsonb DEFAULT '{}'::jsonb,
 	"is_active" boolean DEFAULT true NOT NULL,
 	"is_private_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "projects_id_unique" UNIQUE("id")
+	CONSTRAINT "projects_id_unique" UNIQUE("id"),
+	CONSTRAINT "projects_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
 CREATE TABLE "refresh_tokens" (

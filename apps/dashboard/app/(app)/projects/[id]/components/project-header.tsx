@@ -5,18 +5,22 @@ import { usePathname } from "next/navigation";
 import { cn } from "@workspace/ui/lib/utils";
 
 interface ProjectHeaderProps {
-  projectId: string;
+  projectSlug: string;
   projectName: string;
 }
 
-export function ProjectHeader({ projectId, projectName }: ProjectHeaderProps) {
+export function ProjectHeader({
+  projectSlug,
+  projectName,
+}: ProjectHeaderProps) {
   const pathname = usePathname();
 
   const links = [
-    { name: "Overview", href: `/projects/${projectId}` },
-    { name: "Analytics", href: `/projects/${projectId}/analytics` },
-    { name: "Subscribers", href: `/projects/${projectId}/subscribers` },
-    { name: "Settings", href: `/projects/${projectId}/settings` },
+    { name: "Overview", href: `/projects/${projectSlug}` },
+    { name: "Posts", href: `/projects/${projectSlug}/posts` },
+    { name: "Analytics", href: `/projects/${projectSlug}/analytics` },
+    { name: "Subscribers", href: `/projects/${projectSlug}/subscribers` },
+    { name: "Settings", href: `/projects/${projectSlug}/settings` },
   ];
 
   return (

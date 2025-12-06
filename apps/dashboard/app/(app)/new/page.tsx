@@ -4,18 +4,11 @@ import { Card } from "@workspace/ui/components/card";
 import { CreateProjectForm } from "./components/create-project-form";
 import { useGetProfile } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 export default function NewProjectPage() {
   const { data: user, isLoading } = useGetProfile();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!isLoading && user && !user.username) {
-      router.push("/username");
-    }
-  }, [isLoading, user, router]);
 
   if (isLoading) {
     return (
@@ -25,7 +18,7 @@ export default function NewProjectPage() {
     );
   }
 
-  if (!user?.username) {
+  if (!user) {
     return null;
   }
 
@@ -41,7 +34,7 @@ export default function NewProjectPage() {
           </p>
         </div>
 
-        <CreateProjectForm username={user.username} />
+        <CreateProjectForm />
       </Card>
     </div>
   );

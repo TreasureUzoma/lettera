@@ -3,4 +3,5 @@ export interface UserProfile {
   email: string;
   avatarUrl: null | string;
   username: string | null;
+  plan: "hobby" | "professional" | "business" | "enterprise";
 }

@@ -18,12 +18,17 @@ import {
 } from "@workspace/ui/components/avatar";
 import { usePathname, useParams } from "next/navigation";
 import { ProjectSwitcher } from "./project-switcher";
+import { useSelectedLayoutSegments } from "next/navigation";
 
 export default function AppTopNav() {
   const [scrollY, setScrollY] = React.useState(0);
   const pathname = usePathname();
   const params = useParams();
-  const projectId = params.id as string;
+  const projectSlug = params.id as string;
+
+  const segments = useSelectedLayoutSegments();
+
+  const isProjectRoute = pathname.startsWith(`/projects/${projectSlug}`);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -43,26 +48,34 @@ export default function AppTopNav() {
   ];
 
   const projectTabs = [
-    { label: "Overview", value: "overview", href: `/projects/${projectId}` },
+    { label: "Overview", value: "overview", href: `/projects/${projectSlug}` },
+    { label: "Posts", value: "posts", href: `/projects/${projectSlug}/posts` },
     {
       label: "Analytics",
       value: "analytics",
-      href: `/projects/${projectId}/analytics`,
+      href: `/projects/${projectSlug}/analytics`,
     },
     {
       label: "Subscribers",
       value: "subscribers",
-      href: `/projects/${projectId}/subscribers`,
+      href: `/projects/${projectSlug}/subscribers`,
     },
     {
       label: "Settings",
       value: "settings",
-      href: `/projects/${projectId}/settings`,
+      href: `/projects/${projectSlug}/settings`,
     },
   ];
 
-  const isProjectRoute = pathname.startsWith("/projects/") && projectId;
   const tabs = isProjectRoute ? projectTabs : globalTabs;
+
+  let activeTabValue: string;
+
+  if (isProjectRoute) {
+    activeTabValue = segments[2] || "overview";
+  } else {
+    activeTabValue = segments[0] || "projects";
+  }
 
   const { data: profileData, isLoading: profileLoading } = useGetProfile();
   return (
@@ -91,15 +104,28 @@ export default function AppTopNav() {
                 "h-7 w-[2px] rotate-[12deg] origin-center bg-muted-foreground/20 transition-all duration-500"
               )}
             />
-            <div className="flex flex-col text-sm leading-tight">
+            <div className="flex gap-2.5 text-sm leading-tight">
               {profileLoading ? (
-                <Skeleton className="w-24 h-3 rounded-sm" />
+                <>
+                  <Skeleton className="w-24 h-3 rounded-sm" />
+                  <Skeleton className="w-20 h-3 rounded-sm mt-1" />
+                </>
               ) : (
-                <span className="text-foreground font-medium">
-                  {profileData?.email || "user@email.com"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-foreground font-medium">
+                    {profileData?.email}
+                  </span>
+
+                  <Link
+                    href="/billings"
+                    className="bg-muted text-xs px-2 py-1 rounded-full"
+                  >
+                    {profileData?.plan ?? "Free"}
+                  </Link>
+                </div>
               )}
             </div>
+
             {isProjectRoute && (
               <>
                 <Separator
@@ -131,7 +157,7 @@ export default function AppTopNav() {
                   className="rounded-lg"
                   src={
                     profileData?.avatarUrl ||
-                    `https://avatar.vercel.sh/${profileData?.email}`
+                    `https://avatar.idolo.dev/${profileData?.email}`
                   }
                   alt="lettera-user"
                 />
@@ -142,20 +168,19 @@ export default function AppTopNav() {
         </div>
       </header>
 
-      {/* Sticky Navigation with animated tabs */}
       <div className="sticky top-0 bg-background overflow-x-hidden border-b border-border">
         <div className="flex justify-center items-center">
           <motion.div
             className="flex justify-center flex-1"
             animate={{
-              x: Math.min(scrollY * 0.5, 40), // Move 0.5px right per 1px scroll, max 40px
+              x: Math.min(scrollY * 0.5, 40),
             }}
             transition={{
               duration: 0.05,
               ease: "linear",
             }}
           >
-            <AnimatedTabs tabs={tabs} />
+            <AnimatedTabs tabs={tabs} activeTab={activeTabValue} />
           </motion.div>
         </div>
       </div>

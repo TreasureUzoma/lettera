@@ -85,6 +85,7 @@ export const projects = pgTable("projects", {
   serial: serial("serial").primaryKey(),
   id: uuid("id").defaultRandom().notNull().unique(),
   name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
   description: text("description"),
   config: jsonb("config").default({}),
   isActive: boolean("is_active").default(true).notNull(),

@@ -1,12 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  Check,
-  ChevronsUpDown,
-  PlusCircle,
-  Folder,
-} from "lucide-react";
+import { Check, ChevronsUpDown, PlusCircle, Folder } from "lucide-react";
 
 import { cn } from "@workspace/ui/lib/utils";
 import { Button } from "@workspace/ui/components/button";
@@ -34,9 +29,8 @@ export function ProjectSwitcher() {
   const { data: projects, isLoading } = useProjects();
 
   const selectedProject = projects?.find(
-    (project) => project.id === params.id
+    (project) => project.slug === params.id
   );
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -67,7 +61,7 @@ export function ProjectSwitcher() {
                 <CommandItem
                   key={project.id}
                   onSelect={() => {
-                    router.push(`/projects/${project.id}`);
+                    router.push(`/projects/${project.slug}`);
                     setOpen(false);
                   }}
                   className="text-sm"

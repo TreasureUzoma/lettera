@@ -96,18 +96,49 @@ export type VerifyEmail = z.infer<typeof verifyEmailSchema>;
 
 export const createProjectSchema = z.object({
   name: z.string().min(1).max(35),
+  slug: z
+    .string()
+    .min(3, { message: "Slug must be at least 3 characters long." })
+    .max(30, { message: "Slug must be 30 characters or less." })
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9-]+$/, {
+      message:
+        "Slug must only contain lowercase letters, numbers, and hyphens (-).",
+    })
+    .refine(
+      (value) => !BANNED_SET.has(value),
+      (value) => ({
+        message: `The slug '${value}' is reserved and cannot be used.`,
+      })
+    ),
   description: z.string().max(255).optional(),
   isPublic: z.boolean(),
-  fromEmail: z.string().email(),
 });
 
 export type NewProject = z.infer<typeof createProjectSchema>;
 
 export const updateProjectSchema = z.object({
   name: z.string().min(1).max(35).optional(),
+  slug: z
+    .string()
+    .min(3, { message: "Slug must be at least 3 characters long." })
+    .max(30, { message: "Slug must be 30 characters or less." })
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9-]+$/, {
+      message:
+        "Slug must only contain lowercase letters, numbers, and hyphens (-).",
+    })
+    .refine(
+      (value) => !BANNED_SET.has(value),
+      (value) => ({
+        message: `The slug '${value}' is reserved and cannot be used.`,
+      })
+    )
+    .optional(),
   description: z.string().max(255).optional(),
   isPublic: z.boolean().optional(),
-  fromEmail: z.string().email().optional(),
 });
 
 export type UpdateProject = z.infer<typeof updateProjectSchema>;
@@ -144,13 +175,13 @@ export const isValidToken = z.object({
 });
 
 export const newProjectInviteSchema = z.object({
-  projectId: z.string().uuid(),
+  projectId: z.string().min(1),
   invitedByUserId: z.string().uuid(),
   invitedToUserId: z.string().uuid(),
 });
 
 export const updateProjectMemberRoleSchema = z.object({
-  projectId: z.string().uuid(),
+  projectId: z.string().min(1),
   targetUserId: z.string().uuid(),
   role: z.enum(["owner", "admin", "editor", "viewer"]),
 });
@@ -163,14 +194,14 @@ export const acceptProjectInviteSchema = z.object({
 });
 
 export const inviteUserToProjectSchema = z.object({
-  projectId: z.string().uuid(),
+  projectId: z.string().min(1),
   invitedByUserId: z.string().uuid(),
   invitedToUserId: z.string().uuid(),
   role: z.enum(["owner", "admin", "editor", "viewer"]),
 });
 
 export const unsubscribeFromProjectSchema = z.object({
-  projectId: z.string().uuid(),
+  projectId: z.string().min(1),
   email: z.string().email(),
 });
 
@@ -179,7 +210,7 @@ export type UnsubscribeRequest = z.infer<typeof unsubscribeFromProjectSchema>;
 export const createProjectSubscriberSchema = z.object({
   name: z.string().min(2).max(40).optional(),
   email: z.string().email(),
-  projectId: z.string().uuid(),
+  projectId: z.string().min(1),
 });
 
 export type CreateSubscriber = z.infer<typeof createProjectSubscriberSchema>;
@@ -229,7 +260,7 @@ export const insertPostSchema = z.object({
   subject: z.string().min(4).max(30),
   body: z.string().min(2).max(6000),
   status: z.enum(["published", "draft"]),
-  projectId: z.string().uuid(),
+  projectId: z.string().min(1),
 });
 
 export type InsertPost = z.infer<typeof insertPostSchema>;
@@ -238,14 +269,7 @@ export const dashboardOverviewSchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
   sort: z
-    .enum([
-      "name",
-      "activity",
-      "newest",
-      "oldest",
-      "revenue",
-      "subscribers",
-    ])
+    .enum(["name", "activity", "newest", "oldest", "revenue", "subscribers"])
     .optional(),
 });
 

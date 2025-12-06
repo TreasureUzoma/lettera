@@ -2,7 +2,12 @@ import { decryptDataSubtle, encryptDataSubtle } from "@/lib/encrypt";
 import { generateApiKeys } from "@/lib/utils";
 import type { InsertApiKey } from "@/types";
 import { db } from "@workspace/db";
-import { projectApiKeys, projectInvites, projects, subscribers } from "@workspace/db/schema";
+import {
+  projectApiKeys,
+  projectInvites,
+  projects,
+  subscribers,
+} from "@workspace/db/schema";
 import type { ProjectRoles, ServiceResponse } from "@workspace/types";
 import type { NewProject, NewProjectInvite } from "@workspace/validations";
 import { projectMembers, users } from "@workspace/db/schema";
@@ -23,6 +28,7 @@ export const createProject = async (
       .insert(projects)
       .values({
         name: data.name,
+        slug: data.slug,
         description: data.description,
       })
       .returning();
@@ -68,9 +74,10 @@ export const updateProject = async (
   try {
     const updateValues: Record<string, any> = {};
     if (data.name !== undefined) updateValues.name = data.name;
-    if (data.description !== undefined) updateValues.description = data.description;
+    if (data.slug !== undefined) updateValues.slug = data.slug;
+    if (data.description !== undefined)
+      updateValues.description = data.description;
     if (data.isPublic !== undefined) updateValues.isPublic = data.isPublic;
-    if (data.fromEmail !== undefined) updateValues.fromEmail = data.fromEmail;
 
     if (Object.keys(updateValues).length === 0) {
       return {
@@ -168,6 +175,80 @@ export const createProjectApiKeys = async (
   }
 };
 
+export const generateAndCreateProjectApiKey = async (
+  projectId: string
+): Promise<ServiceResponse> => {
+  try {
+    const { publicKey, secretKey } = generateApiKeys();
+
+    const encryptedSecret = await encryptDataSubtle(secretKey, encryptionKey);
+
+    const [apiKey] = await db
+      .insert(projectApiKeys)
+      .values({
+        projectId,
+        publicKey,
+        encryptedSecretKey: encryptedSecret,
+      })
+      .returning();
+
+    return {
+      data: { ...apiKey, secretKey }, // Return raw secret key for one-time display
+      message: "API key created successfully",
+      success: true,
+    };
+  } catch (err) {
+    return {
+      data: null,
+      success: false,
+      message:
+        err instanceof Error
+          ? err.message
+          : "Something went wrong creating API key",
+    };
+  }
+};
+
+export const deleteProjectApiKey = async (
+  projectId: string,
+  keyId: string
+): Promise<ServiceResponse> => {
+  try {
+    const [deletedKey] = await db
+      .delete(projectApiKeys)
+      .where(
+        and(
+          eq(projectApiKeys.projectId, projectId),
+          eq(projectApiKeys.id, keyId)
+        )
+      )
+      .returning();
+
+    if (!deletedKey) {
+      return {
+        data: null,
+        success: false,
+        message: "API key not found",
+      };
+    }
+
+    return {
+      data: deletedKey,
+      message: "API key deleted successfully",
+      success: true,
+    };
+  } catch (err) {
+    return {
+      data: null,
+      success: false,
+      message:
+        err instanceof Error
+          ? err.message
+          : "Something went wrong deleting API key",
+    };
+  }
+};
+
 export const getUserProjectRole = async (projectId: string, userId: string) => {
   try {
     const [membership] = await db
@@ -226,12 +307,30 @@ export const getValidProject = async (projectId: string) => {
   };
 };
 
+export const getProjectBySlug = async (slug: string) => {
+  const [project] = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.slug, slug));
+
+  if (!project) {
+    return { data: null, success: false, message: "Project not found." };
+  }
+
+  return {
+    data: project,
+    success: true,
+    message: "Project fetched successfully",
+  };
+};
+
 export const getProjectsByUser = (userId: string, page = 1, limit = 10) => {
   const offset = (page - 1) * limit;
 
   const dbQuery = db
     .select({
       id: projects.id,
+      slug: projects.slug,
       name: projects.name,
       description: projects.description,
       createdAt: projects.createdAt,
@@ -245,6 +344,7 @@ export const getProjectsByUser = (userId: string, page = 1, limit = 10) => {
     .where(eq(projectMembers.userId, userId))
     .groupBy(
       projects.id,
+      projects.slug,
       projects.name,
       projects.description,
       projects.createdAt,

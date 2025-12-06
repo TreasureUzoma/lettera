@@ -1,6 +1,7 @@
 export type Project = {
-    id: string;
-    name: string;
-    description: string;
-    isPublicAt: string | null;
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  isPublicAt: string | null;
 };

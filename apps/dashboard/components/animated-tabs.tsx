@@ -9,6 +9,7 @@ import { cn } from "@workspace/ui/lib/utils";
 
 interface AnimatedTabsProps {
   tabs: Tab[];
+  activeTab?: string;
 }
 
 const transition = {
@@ -130,10 +131,9 @@ const Tabs = ({
   );
 };
 
-export function AnimatedTabs({ tabs }: AnimatedTabsProps) {
+export function AnimatedTabs({ tabs, activeTab }: AnimatedTabsProps) {
   const [hookProps] = React.useState(() => {
-    const initialTabId =
-      tabs.find((tab) => tab.value === "projects")?.value || tabs[0]!.value;
+    const initialTabId = activeTab || tabs[0]!.value;
 
     return {
       tabs: tabs.map(({ label, value, subRoutes, href }) => ({

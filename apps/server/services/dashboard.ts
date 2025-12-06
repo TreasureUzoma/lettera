@@ -18,7 +18,6 @@ export const getDashboardOverview = async (
   sort: DashboardOverview["sort"] = "newest"
 ): Promise<ServiceResponse> => {
   try {
-    // 1. Get all project IDs for the user to aggregate stats
     const userProjects = await db
       .select({ id: projects.id })
       .from(projects)
@@ -27,7 +26,6 @@ export const getDashboardOverview = async (
 
     const projectIds = userProjects.map((p) => p.id);
 
-    // 2. Calculate Stats
     let totalProjects = projectIds.length;
     let totalSubscribers = 0;
     let totalRevenue = 0;
@@ -53,7 +51,6 @@ export const getDashboardOverview = async (
       totalPosts = postStats?.count ?? 0;
     }
 
-    // 3. Fetch Projects with Sorting
     const offset = (page - 1) * limit;
 
     let orderBy;
@@ -65,7 +62,7 @@ export const getDashboardOverview = async (
         orderBy = asc(projects.createdAt);
         break;
       case "newest":
-      case "activity": // Assuming activity means recently updated/created for now
+      case "activity":
       default:
         orderBy = desc(projects.createdAt);
         break;
@@ -81,7 +78,7 @@ export const getDashboardOverview = async (
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
         role: projectMembers.role,
-        // We could join to get counts per project here if needed for the list
+        slug: projects.slug,
       })
       .from(projects)
       .innerJoin(projectMembers, eq(projects.id, projectMembers.projectId))

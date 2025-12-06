@@ -36,7 +36,12 @@ const authRoute = new Hono();
 
 const handleAuth = async (
   c: Context,
-  serviceData: ServiceResponse<{ id: string; email: string; name?: string }>
+  serviceData: ServiceResponse<{
+    id: string;
+    email: string;
+    name?: string;
+    subscriptionType?: string | null;
+  }>
 ) => {
   if (!serviceData.success || !serviceData.data?.id) {
     return c.json(
@@ -54,7 +59,8 @@ const handleAuth = async (
   const { accessToken, refreshToken, refreshExpDate } = await generateTokens(
     id,
     email,
-    name || "-"
+    name || "-",
+    serviceData.data.subscriptionType ?? undefined
   );
 
   await storeRefreshToken(id, refreshToken, refreshExpDate, userAgent);
@@ -78,6 +84,21 @@ authRoute.post(
   async (c) => {
     const body = c.req.valid("json");
     const serviceData = await login(body);
+
+    if (serviceData.success && serviceData.data) {
+      const mappedData = {
+        success: serviceData.success,
+        message: serviceData.message,
+        data: {
+          id: serviceData.data.id,
+          email: serviceData.data.email,
+          name: serviceData.data.name,
+          subscriptionType: serviceData.data.subscriptionType ?? undefined,
+        },
+      };
+      return handleAuth(c, mappedData);
+    }
+
     return handleAuth(c, serviceData);
   }
 );
@@ -90,6 +111,21 @@ authRoute.post(
   async (c) => {
     const body = c.req.valid("json");
     const serviceData = await signup(body);
+
+    if (serviceData.success && serviceData.data) {
+      const mappedData = {
+        success: serviceData.success,
+        message: serviceData.message,
+        data: {
+          id: serviceData.data.id,
+          email: serviceData.data.email,
+          name: serviceData.data.name,
+          subscriptionType: serviceData.data.subscriptionType ?? undefined,
+        },
+      };
+      return handleAuth(c, mappedData);
+    }
+
     return handleAuth(c, serviceData);
   }
 );
@@ -114,7 +150,8 @@ authRoute.get("/google/callback", async (c) => {
     const { accessToken, refreshToken, refreshExpDate } = await generateTokens(
       id,
       email,
-      name || "-"
+      name || "-",
+      undefined
     );
 
     await storeRefreshToken(id, refreshToken, refreshExpDate, userAgent);

@@ -3,7 +3,11 @@
 import { useProjectMembers } from "@/hooks/use-project-members";
 import { useUpdateProjectMember } from "@/hooks/use-update-project-member";
 import { useGetProfile } from "@/hooks/use-auth";
-import { Avatar, AvatarFallback, AvatarImage } from "@workspace/ui/components/avatar";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@workspace/ui/components/avatar";
 import {
   Card,
   CardContent,
@@ -47,15 +51,22 @@ export function MembersTab({ projectId }: MembersTabProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         {members?.map((member: any) => (
-          <div key={member.userId} className="flex items-center justify-between">
+          <div
+            key={member.userId}
+            className="flex items-center justify-between"
+          >
             <div className="flex items-center gap-4">
               <Avatar>
-                <AvatarImage src={`https://avatar.vercel.sh/${member.user.email}`} />
+                <AvatarImage
+                  src={`https://avatar.idolo.dev/${member.user.email}`}
+                />
                 <AvatarFallback>{member.user.name?.[0]}</AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-medium">{member.user.name}</p>
-                <p className="text-sm text-muted-foreground">{member.user.email}</p>
+                <p className="text-sm text-muted-foreground">
+                  {member.user.email}
+                </p>
               </div>
             </div>
             <Select

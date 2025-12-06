@@ -22,13 +22,13 @@ import { cn } from "@workspace/ui/lib/utils";
 import { toast } from "sonner";
 import { Textarea } from "@workspace/ui/components/textarea";
 
-export function CreateProjectForm({ username }: { username: string }) {
+export function CreateProjectForm() {
   const router = useRouter();
   const form = useForm<NewProject>({
     resolver: zodResolver(createProjectSchema),
     defaultValues: {
       name: "",
-      fromEmail: `${username}@nnewsletter.lettera.dev`,
+      slug: "",
       isPublic: true,
       description: "",
     },
@@ -72,13 +72,30 @@ export function CreateProjectForm({ username }: { username: string }) {
 
         <FormField
           control={form.control}
-          name="description"
+          name="slug"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Newsletter Slug</FormLabel>
               <FormControl>
-                <Textarea placeholder="Description" {...field} />
+                <Input
+                  placeholder="my-newsletter"
+                  {...field}
+                  onChange={(e) => {
+                    const value = e.target.value
+                      .toLowerCase()
+                      .replace(/[^a-z0-9-]/g, "");
+                    field.onChange(value);
+                  }}
+                />
               </FormControl>
+              {field.value && (
+                <p className="text-[0.8rem] text-muted-foreground">
+                  Newsletter email:{" "}
+                  <span className="font-medium text-foreground">
+                    {field.value}@newsletter.lettera.dev
+                  </span>
+                </p>
+              )}
               <FormMessage />
             </FormItem>
           )}
@@ -86,16 +103,13 @@ export function CreateProjectForm({ username }: { username: string }) {
 
         <FormField
           control={form.control}
-          name="fromEmail"
+          name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>From Email</FormLabel>
+              <FormLabel>Description</FormLabel>
               <FormControl>
-                <Input {...field} disabled />
+                <Textarea placeholder="Description" {...field} />
               </FormControl>
-              <p className="text-[0.8rem] text-muted-foreground">
-                This is your fixed sender address.
-              </p>
               <FormMessage />
             </FormItem>
           )}

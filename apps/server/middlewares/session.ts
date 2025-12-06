@@ -9,11 +9,22 @@ import { refreshTokens, users } from "@workspace/db/schema";
 const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60;
 const FIFTEEN_MINUTES_SECONDS = 15 * 60;
 
-async function generateTokens(userId: string, email: string, name?: string) {
+async function generateTokens(
+  userId: string,
+  email: string,
+  name?: string,
+  plan?: string
+) {
   const currentTime = Math.floor(Date.now() / 1000);
 
   const accessToken = await sign(
-    { id: userId, email, name, exp: currentTime + FIFTEEN_MINUTES_SECONDS },
+    {
+      id: userId,
+      email,
+      name,
+      plan,
+      exp: currentTime + FIFTEEN_MINUTES_SECONDS,
+    },
     envConfig.JWT_ACCESS_SECRET!
   );
 
@@ -41,7 +52,7 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
         const decoded = (await verify(
           accessToken,
           envConfig.JWT_ACCESS_SECRET!
-        )) as { id: string; email: string; name?: string };
+        )) as { id: string; email: string; name?: string; plan?: string };
 
         // Inject user into context
         c.set("user", decoded);
@@ -93,7 +104,12 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
       accessToken: newAccess,
       refreshToken: newRefresh,
       refreshExpDate,
-    } = await generateTokens(user.id, user.email, user.name);
+    } = await generateTokens(
+      user.id,
+      user.email,
+      user.name,
+      user.subscriptionType ?? undefined
+    );
 
     await db
       .update(refreshTokens)
@@ -128,7 +144,12 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
       }
     );
 
-    c.set("user", { id: user.id, email: user.email, name: user.name });
+    c.set("user", {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      plan: user.subscriptionType ?? undefined,
+    });
     return await next();
   } catch (err) {
     console.error("Auth middleware error:", err);
