@@ -3,154 +3,81 @@
 import React from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, Transition } from "motion/react";
-
-import useTabs, { type Tab } from "@/hooks/use-tabs";
 import { cn } from "@workspace/ui/lib/utils";
+
+export interface Tab {
+  label: string;
+  value: string;
+  subRoutes?: string[];
+  href: string;
+}
 
 interface AnimatedTabsProps {
   tabs: Tab[];
   activeTab?: string;
 }
 
-const transition = {
-  type: "tween",
-  ease: "easeOut",
-  duration: 0.15,
-};
-
-const getHoverAnimationProps = (hoveredRect: DOMRect, navRect: DOMRect) => ({
-  x: hoveredRect.left - navRect.left - 10,
-  y: hoveredRect.top - navRect.top - 4,
-  width: hoveredRect.width + 20,
-  height: hoveredRect.height + 10,
-});
-
-const Tabs = ({
-  tabs,
-  selectedTabIndex,
-  setSelectedTab,
-}: {
-  tabs: Tab[];
-  selectedTabIndex: number;
-  setSelectedTab: (input: [number, number]) => void;
-}) => {
-  const [buttonRefs, setButtonRefs] = React.useState<
-    Array<HTMLAnchorElement | null>
-  >([]);
-
-  React.useEffect(() => {
-    setButtonRefs((prev) => prev.slice(0, tabs.length));
-  }, [tabs.length]);
-
-  const navRef = React.useRef<HTMLDivElement>(null);
-  const navRect = navRef.current?.getBoundingClientRect();
-
-  const selectedRect = buttonRefs[selectedTabIndex]?.getBoundingClientRect();
-
-  const [hoveredTabIndex, setHoveredTabIndex] = React.useState<number | null>(
-    null
-  );
-  const hoveredRect =
-    buttonRefs[hoveredTabIndex ?? -1]?.getBoundingClientRect();
-
-  return (
-    <nav
-      ref={navRef}
-      className="flex flex-shrink-0 justify-center items-center relative py-2"
-      onPointerLeave={() => setHoveredTabIndex(null)}
-    >
-      {tabs.map((item, i) => {
-        const isActive = selectedTabIndex === i;
-
-        return (
-          <Link
-            key={item.value}
-            href={item.href}
-            className={cn(
-              "relative rounded-md flex items-center h-8 px-4 z-20 cursor-pointer select-none transition-colors",
-              "hover:bg-accent hover:text-foreground"
-            )}
-            onPointerEnter={() => setHoveredTabIndex(i)}
-            onFocus={() => setHoveredTabIndex(i)}
-            onClick={() => setSelectedTab([i, i > selectedTabIndex ? 1 : -1])}
-          >
-            <motion.span
-              ref={(el) => {
-                buttonRefs[i] = el as HTMLAnchorElement;
-              }}
-              className={cn("block text-sm", {
-                "text-muted-foreground": !isActive,
-                "text-foreground font-semibold": isActive,
-              })}
-            >
-              <span>{item.label}</span>
-            </motion.span>
-          </Link>
-        );
-      })}
-
-      {/* hover animation */}
-      <AnimatePresence>
-        {hoveredRect && navRect && (
-          <motion.div
-            key="hover"
-            className="absolute z-10 top-0 left-0 rounded-md bg-accent/40 dark:bg-accent/20"
-            initial={{
-              ...getHoverAnimationProps(hoveredRect, navRect),
-              opacity: 0,
-            }}
-            animate={{
-              ...getHoverAnimationProps(hoveredRect, navRect),
-              opacity: 1,
-            }}
-            exit={{
-              ...getHoverAnimationProps(hoveredRect, navRect),
-              opacity: 0,
-            }}
-            transition={transition as Transition<Record<string, unknown>>}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* active underline */}
-      <AnimatePresence>
-        {selectedRect && navRect && (
-          <motion.div
-            className="absolute z-10 bottom-0 left-0 h-[2px] bg-foreground"
-            initial={false}
-            animate={{
-              width: selectedRect.width + 18,
-              x: `calc(${selectedRect.left - navRect.left - 9}px)`,
-              opacity: 1,
-            }}
-            transition={transition as Transition<Record<string, unknown>>}
-          />
-        )}
-      </AnimatePresence>
-    </nav>
-  );
+const transition: Transition = {
+  type: "spring",
+  stiffness: 500,
+  damping: 30,
 };
 
 export function AnimatedTabs({ tabs, activeTab }: AnimatedTabsProps) {
-  const [hookProps] = React.useState(() => {
-    const initialTabId = activeTab || tabs[0]!.value;
-
-    return {
-      tabs: tabs.map(({ label, value, subRoutes, href }) => ({
-        label,
-        value,
-        subRoutes,
-        href,
-      })),
-      initialTabId,
-    };
-  });
-
-  const framer = useTabs(hookProps);
+  const [hoveredTabIndex, setHoveredTabIndex] = React.useState<number | null>(
+    null
+  );
 
   return (
-    <div className="relative flex w-full items-start justify-start overflow-x-auto overflow-y-hidden">
-      <Tabs {...framer.tabProps} />
+    <div className="relative flex w-full items-baseline justify-start overflow-x-auto no-scrollbar">
+      <nav
+        className="flex flex-shrink-0 justify-center items-center relative"
+        onPointerLeave={() => setHoveredTabIndex(null)}
+      >
+        {tabs.map((item, i) => {
+          const isActive = activeTab === item.value;
+
+          return (
+            <Link
+              key={item.value}
+              href={item.href}
+              className={cn(
+                "relative flex items-center h-10 px-4 z-20 cursor-pointer select-none transition-colors",
+                "text-sm font-medium",
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              onPointerEnter={() => setHoveredTabIndex(i)}
+            >
+              <span className="relative z-20">{item.label}</span>
+
+              {/* Hover highlight */}
+              <AnimatePresence>
+                {hoveredTabIndex === i && (
+                  <motion.div
+                    layoutId="hover-bg"
+                    className="absolute inset-x-1 inset-y-1.5 rounded-md bg-accent/50 -z-10"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={transition}
+                  />
+                )}
+              </AnimatePresence>
+
+              {/* Active indicator */}
+              {isActive && (
+                <motion.div
+                  layoutId="active-tab"
+                  className="absolute bottom-0 left-2 right-2 h-[2px] bg-foreground z-30"
+                  transition={transition}
+                />
+              )}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

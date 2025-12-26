@@ -1,4 +1,8 @@
-import { InferSelectModel, InferInsertModel, InferEnum } from "drizzle-orm";
+import type {
+  InferSelectModel,
+  InferInsertModel,
+  InferEnum,
+} from "drizzle-orm";
 
 import { projectRoleEnum, refreshTokens, users } from "../schema.js";
 

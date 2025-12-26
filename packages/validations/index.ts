@@ -208,7 +208,10 @@ export const unsubscribeFromProjectSchema = z.object({
 export type UnsubscribeRequest = z.infer<typeof unsubscribeFromProjectSchema>;
 
 export const createProjectSubscriberSchema = z.object({
-  name: z.string().min(2).max(40).optional(),
+  name: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().min(2).max(40).optional()
+  ),
   email: z.string().email(),
   projectId: z.string().min(1),
 });

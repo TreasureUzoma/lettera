@@ -68,13 +68,14 @@ export const getDashboardOverview = async (
         break;
       // Note: Sorting by revenue or subscribers would require complex joins/subqueries
       // For now, we'll fallback to createdAt for these complex sorts or implement them if strictly needed
-      // implementing simple ones first.
+      // im only implementing simple ones first.
     }
 
     const dbQuery = db
       .select({
         id: projects.id,
         name: projects.name,
+        description: projects.description,
         createdAt: projects.createdAt,
         updatedAt: projects.updatedAt,
         role: projectMembers.role,

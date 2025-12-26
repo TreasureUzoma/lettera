@@ -13,6 +13,7 @@
       "@/*": ["./*"],
       "@workspace/ui/*": ["../../packages/ui/src/*"]
     },
+    "types": ["bun-types"],
 
     // Bundler mode
     "moduleResolution": "bundler",

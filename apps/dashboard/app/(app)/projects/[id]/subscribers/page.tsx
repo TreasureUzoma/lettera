@@ -42,7 +42,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@workspace/ui/components/alert-dialog";
-import { Loader2, Plus, Trash2, UserPlus } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  UserPlus,
+  BookOpen,
+  Code,
+  Zap,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -57,6 +65,13 @@ import {
   createProjectSubscriberSchema,
   CreateSubscriber,
 } from "@workspace/validations";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@workspace/ui/components/tabs";
+import Link from "next/link";
 
 export default function ProjectSubscribersPage() {
   const params = useParams();
@@ -110,54 +125,103 @@ export default function ProjectSubscribersPage() {
               Add Subscriber
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Add Subscriber</DialogTitle>
               <DialogDescription>
-                Add a new subscriber to your project manually.
+                Choose how you want to add new subscribers to your project.
               </DialogDescription>
             </DialogHeader>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="john@example.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <Button type="submit" disabled={isCreating}>
-                    {isCreating && (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    )}
-                    Add Subscriber
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
+
+            <Tabs defaultValue="manual" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="manual" className="gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  Manual
+                </TabsTrigger>
+                <TabsTrigger value="api" className="gap-2">
+                  <Code className="w-4 h-4" />
+                  API / Devs
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="manual" className="space-y-4 pt-4">
+                <Form {...form}>
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-4"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="john@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name (Optional)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <DialogFooter>
+                      <Button
+                        type="submit"
+                        disabled={isCreating}
+                        className="w-full"
+                      >
+                        {isCreating && (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        )}
+                        Add Subscriber
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </TabsContent>
+
+              <TabsContent value="api" className="space-y-4 pt-4">
+                <div className="bg-muted/50 rounded-xl p-6 space-y-4 border border-dashed">
+                  <div className="p-3 bg-background rounded-lg w-fit border shadow-sm">
+                    <Zap className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-base">
+                      Programmatic Access
+                    </h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Integrate Lettera directly into your website or
+                      application using our simple REST API.
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <Button variant="outline" className="w-full gap-2" asChild>
+                      <Link href="/docs">
+                        <BookOpen className="w-4 h-4" />
+                        View API Docs
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-[0.7rem] text-muted-foreground text-center px-4">
+                  You can find your API key and Project ID in the project
+                  settings tab.
+                </div>
+              </TabsContent>
+            </Tabs>
           </DialogContent>
         </Dialog>
       </div>
