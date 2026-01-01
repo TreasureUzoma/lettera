@@ -24,6 +24,7 @@ import {
   deleteEmail,
   updateEmail,
 } from "@/services/emails";
+import { getProjectAnalytics } from "@/services/analytics";
 import { z } from "zod";
 import type { AppBindings, AuthType } from "@/types";
 import { Hono } from "hono";
@@ -206,6 +207,25 @@ projectsRoute.get(
     if (projectOrRes instanceof Response) return projectOrRes;
     const project = projectOrRes;
     return c.json({ project }, 200);
+  }
+);
+
+// get project analytics
+projectsRoute.get(
+  "/:id/analytics",
+  zValidator("param", z.object({ id: z.string().min(1) }), (result, c) => {
+    if (!result.success) {
+      return validationErrorResponse(c, result.error);
+    }
+  }),
+  async (c) => {
+    const { id: projectId } = c.req.valid("param");
+    const projectOrRes = await getProjectOrFail(c, projectId);
+    if (projectOrRes instanceof Response) return projectOrRes;
+    const project = projectOrRes;
+
+    const serviceData = await getProjectAnalytics(project.id);
+    return c.json(serviceData, routeStatus(serviceData));
   }
 );
 

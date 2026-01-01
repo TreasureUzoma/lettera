@@ -1,0 +1,143 @@
+import { db } from "@workspace/db";
+import { emails, subscribers } from "@workspace/db/schema";
+import type { ServiceResponse } from "@workspace/types";
+import { and, count, desc, eq, gte, sql } from "drizzle-orm";
+
+export const getProjectAnalytics = async (
+  projectId: string
+): Promise<ServiceResponse<any>> => {
+  try {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // 1. Total Subscribers
+    const [subStats] = await db
+      .select({ count: count() })
+      .from(subscribers)
+      .where(
+        and(
+          eq(subscribers.projectId, projectId),
+          eq(subscribers.status, "subscribed")
+        )
+      );
+    const totalSubscribers = subStats?.count ?? 0;
+
+    // 2. Growth (7d and 30d)
+    const [subStats7d] = await db
+      .select({ count: count() })
+      .from(subscribers)
+      .where(
+        and(
+          eq(subscribers.projectId, projectId),
+          gte(subscribers.createdAt, sevenDaysAgo)
+        )
+      );
+    const growth7d = subStats7d?.count ?? 0;
+
+    const [subStats30d] = await db
+      .select({ count: count() })
+      .from(subscribers)
+      .where(
+        and(
+          eq(subscribers.projectId, projectId),
+          gte(subscribers.createdAt, thirtyDaysAgo)
+        )
+      );
+    const growth30d = subStats30d?.count ?? 0;
+
+    // 3. Last post sent
+    const [lastEmail] = await db
+      .select()
+      .from(emails)
+      .where(
+        and(eq(emails.projectId, projectId), eq(emails.status, "published"))
+      )
+      .orderBy(desc(emails.sentAt))
+      .limit(1);
+
+    // 4. Subscriber growth chart (daily signups for last 30 days)
+    // We'll use a raw SQL query for grouping by day to be more efficient across DBs
+    const dailyGrowth = await db.execute(sql`
+      SELECT 
+        date_trunc('day', created_at) as date,
+        count(id) as count
+      FROM subscribers
+      WHERE project_id = ${projectId}
+        AND created_at >= ${thirtyDaysAgo}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `);
+
+    // 5. Recent Activity Feed
+    const recentSubscribers = await db
+      .select({
+        id: subscribers.id,
+        name: subscribers.name,
+        email: subscribers.email,
+        createdAt: subscribers.createdAt,
+        type: sql<string>`'subscriber'`,
+      })
+      .from(subscribers)
+      .where(eq(subscribers.projectId, projectId))
+      .orderBy(desc(subscribers.createdAt))
+      .limit(5);
+
+    const recentEmails = await db
+      .select({
+        id: emails.id,
+        subject: emails.subject,
+        createdAt: emails.sentAt,
+        type: sql<string>`'email'`,
+      })
+      .from(emails)
+      .where(
+        and(eq(emails.projectId, projectId), eq(emails.status, "published"))
+      )
+      .orderBy(desc(emails.sentAt))
+      .limit(5);
+
+    // Combine and sort activity
+    const activity = [...recentSubscribers, ...recentEmails]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt as any).getTime() -
+          new Date(a.createdAt as any).getTime()
+      )
+      .slice(0, 10);
+
+    return {
+      success: true,
+      message: "Project analytics fetched successfully",
+      data: {
+        stats: {
+          totalSubscribers,
+          growth7d,
+          growth30d,
+          lastPostSent: lastEmail?.sentAt ?? null,
+          openRate: 0, // Mocked for now
+        },
+        chartData: dailyGrowth.rows,
+        activity,
+        lastPost: lastEmail
+          ? {
+              id: lastEmail.id,
+              subject: lastEmail.subject,
+              sentAt: lastEmail.sentAt,
+              openRate: 0, // Mocked
+              clickRate: 0, // Mocked
+            }
+          : null,
+      },
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message:
+        err instanceof Error
+          ? err.message
+          : "Something went wrong fetching project analytics",
+      data: null,
+    };
+  }
+};

@@ -1,106 +1,67 @@
 "use client";
 
-import { useState } from "react";
 import { useParams } from "next/navigation";
-import { useCreateEmail } from "@/hooks/use-create-email";
 import { useProject } from "@/hooks/use-project";
-import { Button } from "@workspace/ui/components/button";
-import { Input } from "@workspace/ui/components/input";
-import { MarkdownSplitEditor } from "@/components/markdown-split-editor";
+import { useProjectAnalytics } from "@/hooks/use-project-analytics";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { KPICards } from "./components/overview/kpi-cards";
+import { GrowthChart } from "./components/overview/growth-chart";
+import { ActivityFeed } from "./components/overview/activity-feed";
+import { LatestPost } from "./components/overview/latest-post";
+import { ProjectCTA } from "./components/overview/project-cta";
 
 export default function ProjectOverviewPage() {
   const params = useParams();
   const slug = params.id as string;
 
   const { data: project, isLoading: isProjectLoading } = useProject(slug);
+  const { data: analytics, isLoading: isAnalyticsLoading } =
+    useProjectAnalytics(project?.id ?? "");
 
-  const [subject, setSubject] = useState("");
-  const [content, setContent] = useState("");
-
-  const { mutate: createEmail, isPending: isCreating } = useCreateEmail(
-    project?.id ?? ""
-  );
-
-  const handleSave = (status: "published" | "draft") => {
-    if (!project?.id) return;
-    if (!subject) {
-      toast.error("Please enter a subject");
-      return;
-    }
-    if (!content) {
-      toast.error("Please add some content");
-      return;
-    }
-
-    createEmail(
-      {
-        subject,
-        body: content,
-      },
-      {
-        onSuccess: () => {
-          setSubject("");
-          setContent("");
-          toast.success(
-            `Post ${status === "published" ? "published" : "saved as draft"}`
-          );
-        },
-      }
-    );
-  };
-
-  if (isProjectLoading) {
+  if (isProjectLoading || isAnalyticsLoading) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!project) {
-    return <div>Project not found</div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
+        <p className="text-xl font-semibold">Project not found</p>
+        <p className="text-muted-foreground text-sm">
+          The project you're looking for doesn't exist or you don't have access.
+        </p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4 h-[calc(100vh-8rem)] flex flex-col pb-6">
+    <div className="space-y-8 pb-10">
       <div className="flex items-center justify-between shrink-0">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight">Create Post</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Overview</h2>
           <p className="text-muted-foreground">
-            Write a new post or newsletter.
+            A snapshot of your newsletter's health and activity.
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => handleSave("draft")}
-            disabled={isCreating}
-          >
-            Save Draft
-          </Button>
-          <Button onClick={() => handleSave("published")} disabled={isCreating}>
-            {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Publish
-          </Button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 flex-1 min-h-0">
-        <Input
-          placeholder="Post Subject"
-          className="text-lg font-medium h-12 shrink-0"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-        />
-        <div className="flex-1 min-h-0">
-          <MarkdownSplitEditor
-            value={content}
-            onChange={setContent}
-            className="h-full"
-          />
+      <KPICards stats={analytics?.stats} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <GrowthChart data={analytics?.chartData} />
         </div>
+        <div>
+          <ActivityFeed activities={analytics?.activity} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <LatestPost post={analytics?.lastPost} />
+        <ProjectCTA project={project} stats={analytics?.stats} />
       </div>
     </div>
   );

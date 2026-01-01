@@ -3,12 +3,10 @@
 import { Card } from "@workspace/ui/components/card";
 import { CreateProjectForm } from "./components/create-project-form";
 import { useGetProfile } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 export default function NewProjectPage() {
   const { data: user, isLoading } = useGetProfile();
-  const router = useRouter();
 
   if (isLoading) {
     return (
