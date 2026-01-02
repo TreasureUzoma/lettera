@@ -10,6 +10,11 @@
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
+    "@workspace/axios": "workspace:*",
+    "@workspace/constants": "workspace:*",
+    "@workspace/types": "workspace:*",
+    "@workspace/ui": "workspace:*",
+    "@workspace/validations": "workspace:*",
     "fumadocs-core": "16.4.2",
     "fumadocs-mdx": "14.2.4",
     "fumadocs-ui": "16.4.2",
@@ -17,11 +22,7 @@
     "next": "16.1.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "@workspace/axios": "workspace:*",
-    "@workspace/constants": "workspace:*",
-    "@workspace/types": "workspace:*",
-    "@workspace/ui": "workspace:*",
-    "@workspace/validations": "workspace:*"
+    "supametrics": "^1.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
