@@ -1,0 +1,109 @@
+---
+title: Get Subscribers
+description: "Retrieve a list of all subscribers for your project using the API."
+---
+
+# Get Subscribers
+
+Retrieves a list of all subscribers for your project. This endpoint requires a **Private Key**.
+
+## Authentication
+
+This endpoint uses both the Public Key and Private Key for authentication.
+
+**Endpoint:** `GET /api/v1/external/projects/subscribers`
+
+**Query Parameters:**
+
+- `page`: Page number (default: 1)
+- `limit`: Number of items per page (default: 10)
+
+**Headers:**
+
+- `x-lettera-public-key: <YOUR_PUBLIC_KEY>`
+- `x-lettera-private-key: <YOUR_PRIVATE_KEY>`
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "Fetched subscribers successfully",
+  "data": {
+    "data": [
+      {
+        "serial": 123,
+        "id": "bdc80124-5787-4002-ba52-78ceddfeaadb",
+        "projectId": "bae91c59-0a8a-49f8-b917-f38c3772b88e",
+        "name": "Subscriber Name",
+        "email": "user@mail.com",
+        "status": "subscribed",
+        "createdAt": "2025-12-26T20:39:16.233Z",
+        "updatedAt": "2025-12-26T20:39:16.233Z"
+      }
+    ],
+    "meta": {
+      "page": 1,
+      "limit": 10,
+      "total": 1,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPrevPage": false
+    }
+  }
+}
+```
+
+## Code Examples
+
+### cURL
+
+```bash
+curl -X GET "https://api.lettera.dev/api/v1/external/projects/subscribers?page=1&limit=10" \
+  -H "x-lettera-public-key: letr_your_public_key" \
+  -H "x-lettera-private-key: letr_private_your_private_key"
+```
+
+### Node.js (Axios)
+
+```javascript
+const axios = require("axios");
+
+async function getSubscribers() {
+  try {
+    const response = await axios.get(
+      "https://api.lettera.dev/api/v1/external/projects/subscribers",
+      {
+        headers: {
+          "x-lettera-public-key": "letr_your_public_key",
+          "x-lettera-private-key": "letr_private_your_private_key",
+        },
+      }
+    );
+    console.log(response.data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+getSubscribers();
+```
+
+### Python (Requests)
+
+```python
+import requests
+
+url = "https://api.lettera.dev/api/v1/external/projects/subscribers"
+headers = {
+    "x-lettera-public-key": "letr_your_public_key",
+    "x-lettera-private-key": "letr_private_your_private_key"
+}
+
+response = requests.get(url, headers=headers)
+
+if response.status_code == 200:
+    print(response.json())
+else:
+    print(f"Failed: {response.text}")
+```

@@ -13,9 +13,15 @@ import type { DashboardOverview } from "@workspace/validations";
 
 interface SearchAndFilterProps {
   onFilterChange: (value: DashboardOverview["sort"]) => void;
+  onSearchChange: (value: string) => void;
+  searchValue?: string;
 }
 
-export function SearchAndFilter({ onFilterChange }: SearchAndFilterProps) {
+export function SearchAndFilter({
+  onFilterChange,
+  onSearchChange,
+  searchValue = "",
+}: SearchAndFilterProps) {
   const handleFilterChange = (value: string) => {
     onFilterChange(value as DashboardOverview["sort"]);
   };
@@ -26,11 +32,13 @@ export function SearchAndFilter({ onFilterChange }: SearchAndFilterProps) {
         <Input
           placeholder="Search projects..."
           className="pl-10 py-5 w-full"
+          value={searchValue}
+          onChange={(e) => onSearchChange(e.target.value)}
         />
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
       </div>
 
-      <Select onValueChange={handleFilterChange}>
+      <Select onValueChange={handleFilterChange} defaultValue="newest">
         <SelectTrigger className="w-auto h-10 px-3 py-5">
           <Filter className="w-4 h-4" />
         </SelectTrigger>

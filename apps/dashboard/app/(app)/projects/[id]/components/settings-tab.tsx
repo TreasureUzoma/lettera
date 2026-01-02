@@ -1,7 +1,6 @@
 "use client";
 
-import { useDeleteProject } from "@/hooks/use-delete-project";
-import { useUpdateProject } from "@/hooks/use-update-project";
+import { useDeleteProject, useUpdateProject } from "@/hooks/use-projects";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateProjectSchema } from "@workspace/validations";
 import type { UpdateProject } from "@workspace/validations";
@@ -100,7 +99,7 @@ export function SettingsTab({ project }: SettingsTabProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="description"
@@ -207,15 +206,15 @@ export function SettingsTab({ project }: SettingsTabProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your
-                    project and remove your data from our servers.
+                    This action cannot be undone. This will permanently delete
+                    your project and remove your data from our servers.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={() => deleteProject(project.id)}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    className="bg-destructive text-white hover:bg-destructive/90"
                   >
                     {isDeleting ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

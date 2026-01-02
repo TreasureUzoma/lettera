@@ -15,7 +15,8 @@ export const getDashboardOverview = async (
   userId: string,
   page = 1,
   limit = 10,
-  sort: DashboardOverview["sort"] = "newest"
+  sort: DashboardOverview["sort"] = "newest",
+  search?: string
 ): Promise<ServiceResponse> => {
   try {
     const userProjects = await db
@@ -71,6 +72,15 @@ export const getDashboardOverview = async (
       // im only implementing simple ones first.
     }
 
+    // Build where conditions
+    const whereConditions = [eq(projectMembers.userId, userId)];
+
+    if (search && search.trim()) {
+      whereConditions.push(
+        sql`LOWER(${projects.name}) LIKE LOWER(${"%" + search + "%"})`
+      );
+    }
+
     const dbQuery = db
       .select({
         id: projects.id,
@@ -83,15 +93,16 @@ export const getDashboardOverview = async (
       })
       .from(projects)
       .innerJoin(projectMembers, eq(projects.id, projectMembers.projectId))
-      .where(eq(projectMembers.userId, userId))
+      .where(and(...whereConditions))
       .orderBy(orderBy)
       .limit(limit)
       .offset(offset);
 
     const countQuery = db
       .select({ count: count() })
-      .from(projectMembers)
-      .where(eq(projectMembers.userId, userId));
+      .from(projects)
+      .innerJoin(projectMembers, eq(projects.id, projectMembers.projectId))
+      .where(and(...whereConditions));
 
     const projectsData = await paginate(dbQuery, countQuery, page, limit);
 

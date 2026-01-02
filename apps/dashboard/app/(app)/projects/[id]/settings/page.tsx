@@ -1,6 +1,6 @@
 "use client";
 
-import { useProject } from "@/hooks/use-project";
+import { useProject } from "@/hooks/use-projects";
 import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { SettingsTab } from "../components/settings-tab";

@@ -23,7 +23,11 @@ const nextConfig = {
       "settings/:path",
       "activity",
       "username",
-      "username/:path",
+      "username/:path+",
+      "onboarding",
+      "onboarding/:path+",
+      "billings",
+      "billings/:path+",
     ];
 
     const staticRoutes = [
@@ -33,7 +37,7 @@ const nextConfig = {
       },
       {
         source: "/docs",
-        destination: `${DOCS_SITE}`,
+        destination: `${DOCS_SITE}/docs`,
       },
       {
         source: "/docs/:path+",

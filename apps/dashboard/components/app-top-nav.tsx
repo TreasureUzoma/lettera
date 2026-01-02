@@ -40,8 +40,6 @@ export default function AppTopNav() {
 
   const globalTabs = [
     { label: "Projects", value: "projects", href: "/projects" },
-    { label: "Onboarding", value: "onboarding", href: "/onboarding" },
-    { label: "Billings", value: "billings", href: "/billings" },
     { label: "Settings", value: "settings", href: "/settings" },
     { label: "Docs", value: "docs", href: "/docs" },
   ];
@@ -100,7 +98,7 @@ export default function AppTopNav() {
             ease: "linear",
           }}
         >
-          <Link href="/">
+          <Link href="/projects">
             <Logo />
           </Link>
         </motion.div>

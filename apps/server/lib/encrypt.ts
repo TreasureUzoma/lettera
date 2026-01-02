@@ -10,21 +10,27 @@ const arrayBufferToHex = (buffer: ArrayBuffer): string => {
   return Buffer.from(buffer).toString("hex");
 };
 
+const getEncryptionKey = async (key: string): Promise<CryptoKey> => {
+  const data = new TextEncoder().encode(key);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+
+  return await crypto.subtle.importKey(
+    "raw",
+    hash,
+    ENCRYPTION_ALGORITHM,
+    false,
+    ["encrypt", "decrypt"]
+  );
+};
+
 export const encryptDataSubtle = async (
   data: string,
   encryptionKey: string
 ): Promise<string> => {
-  const keyBuffer = hexToArrayBuffer(encryptionKey);
   const dataBuffer = new TextEncoder().encode(data);
   const iv = crypto.getRandomValues(new Uint8Array(GCM_IV_LENGTH));
 
-  const importedKey = await crypto.subtle.importKey(
-    "raw",
-    keyBuffer,
-    ENCRYPTION_ALGORITHM,
-    false,
-    ["encrypt"]
-  );
+  const importedKey = await getEncryptionKey(encryptionKey);
 
   const encryptedBuffer = await crypto.subtle.encrypt(
     {
@@ -53,17 +59,10 @@ export const decryptDataSubtle = async (
     );
   }
 
-  const keyBuffer = hexToArrayBuffer(encryptionKey);
   const ivBuffer = hexToArrayBuffer(ivHex);
   const fullCiphertextBuffer = hexToArrayBuffer(fullCiphertextHex);
 
-  const importedKey = await crypto.subtle.importKey(
-    "raw",
-    keyBuffer,
-    ENCRYPTION_ALGORITHM,
-    false,
-    ["decrypt"]
-  );
+  const importedKey = await getEncryptionKey(encryptionKey);
 
   try {
     const decryptedBuffer = await crypto.subtle.decrypt(

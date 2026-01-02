@@ -3,7 +3,6 @@ import api from "@workspace/axios";
 import type { DashboardOverview } from "@workspace/validations";
 import type { ServiceResponse } from "@workspace/types";
 
-// Define the response type based on the service return
 interface DashboardData {
   stats: {
     totalProjects: number;
@@ -12,7 +11,7 @@ interface DashboardData {
     totalPosts: number;
   };
   projects: {
-    data: any[]; // Replace with actual Project type if available
+    data: any[];
     meta: {
       total: number;
       page: number;
@@ -22,6 +21,40 @@ interface DashboardData {
   };
 }
 
+export function useDashboardStats() {
+  return useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: async () => {
+      const res =
+        await api.get<ServiceResponse<{ stats: DashboardData["stats"] }>>(
+          `/dashboard/stats`
+        );
+      return res.data.data;
+    },
+  });
+}
+
+export function useDashboardProjects(
+  params: Omit<DashboardOverview, "limit"> & { limit?: number }
+) {
+  return useQuery({
+    queryKey: ["dashboard-projects", params],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.set("page", params.page.toString());
+      if (params.limit) searchParams.set("limit", params.limit.toString());
+      if (params.sort) searchParams.set("sort", params.sort);
+      if (params.search) searchParams.set("search", params.search);
+
+      const res = await api.get<
+        ServiceResponse<{ projects: DashboardData["projects"] }>
+      >(`/dashboard/projects?${searchParams.toString()}`);
+      return res.data.data;
+    },
+  });
+}
+
+// Keep the old hook for backward compatibility if needed elsewhere
 export function useDashboardOverview(params: DashboardOverview) {
   return useQuery({
     queryKey: ["dashboard-overview", params],
@@ -30,6 +63,7 @@ export function useDashboardOverview(params: DashboardOverview) {
       if (params.page) searchParams.set("page", params.page.toString());
       if (params.limit) searchParams.set("limit", params.limit.toString());
       if (params.sort) searchParams.set("sort", params.sort);
+      if (params.search) searchParams.set("search", params.search);
 
       const res = await api.get<ServiceResponse<DashboardData>>(
         `/dashboard/overview?${searchParams.toString()}`

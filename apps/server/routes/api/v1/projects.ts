@@ -220,11 +220,14 @@ projectsRoute.get(
   }),
   async (c) => {
     const { id: projectId } = c.req.valid("param");
+    const { days } = c.req.query();
     const projectOrRes = await getProjectOrFail(c, projectId);
     if (projectOrRes instanceof Response) return projectOrRes;
     const project = projectOrRes;
 
-    const serviceData = await getProjectAnalytics(project.id);
+    const daysNum = days ? parseInt(days) : 30;
+
+    const serviceData = await getProjectAnalytics(project.id, daysNum);
     return c.json(serviceData, routeStatus(serviceData));
   }
 );
@@ -360,7 +363,14 @@ projectsRoute.get(
     if (projectOrRes instanceof Response) return projectOrRes;
     const project = projectOrRes;
 
-    const serviceData = await getSubscribers(project.id);
+    const { page, limit } = c.req.query();
+    const pageNumber = page ? parseInt(page) : 1;
+    const limitNumber = limit ? parseInt(limit) : 10;
+    const serviceData = await getSubscribers(
+      project.id,
+      pageNumber,
+      limitNumber
+    );
     return c.json(serviceData, routeStatus(serviceData));
   }
 );

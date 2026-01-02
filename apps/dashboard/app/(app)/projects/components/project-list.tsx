@@ -1,6 +1,11 @@
 "use client";
 
-import { Card } from "@workspace/ui/components/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card";
 import Link from "next/link";
 import { Project } from "@workspace/constants/types/projects";
 
@@ -31,10 +36,12 @@ export function ProjectList({ projects }: ProjectListProps) {
               key={project.id}
               className="py-4 my-3 hover:bg-accent/50 rounded-sm px-2 cursor-pointer"
             >
-              <h3 className="font-medium">{project.name}</h3>
-              <p className="text-sm text-muted-foreground">
-                {project.description || "No description"}
-              </p>
+              <CardContent className="space-y-2">
+                <CardTitle>{project.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {project.description || "No description"}
+                </p>
+              </CardContent>
             </Card>
           </Link>
         ))}

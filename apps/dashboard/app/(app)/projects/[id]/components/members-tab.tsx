@@ -1,7 +1,9 @@
 "use client";
 
-import { useProjectMembers } from "@/hooks/use-project-members";
-import { useUpdateProjectMember } from "@/hooks/use-update-project-member";
+import {
+  useProjectMembers,
+  useUpdateProjectMember,
+} from "@/hooks/use-project-members";
 import { useGetProfile } from "@/hooks/use-auth";
 import {
   Avatar,
@@ -24,11 +26,7 @@ import {
 } from "@workspace/ui/components/select";
 import { Loader2 } from "lucide-react";
 
-interface MembersTabProps {
-  projectId: string;
-}
-
-export function MembersTab({ projectId }: MembersTabProps) {
+export function MembersTab({ projectId }: { projectId: string }) {
   const { data: members, isLoading } = useProjectMembers(projectId);
   const { mutate: updateRole, isPending } = useUpdateProjectMember(projectId);
   const { data: user } = useGetProfile();

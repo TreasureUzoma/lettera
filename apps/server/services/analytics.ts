@@ -4,10 +4,12 @@ import type { ServiceResponse } from "@workspace/types";
 import { and, count, desc, eq, gte, sql } from "drizzle-orm";
 
 export const getProjectAnalytics = async (
-  projectId: string
+  projectId: string,
+  days: number = 30
 ): Promise<ServiceResponse<any>> => {
   try {
     const now = new Date();
+    const timeframeDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
@@ -56,18 +58,38 @@ export const getProjectAnalytics = async (
       .orderBy(desc(emails.sentAt))
       .limit(1);
 
-    // 4. Subscriber growth chart (daily signups for last 30 days)
-    // We'll use a raw SQL query for grouping by day to be more efficient across DBs
+    // 4. Subscriber growth chart
     const dailyGrowth = await db.execute(sql`
       SELECT 
         date_trunc('day', created_at) as date,
-        count(id) as count
+        count(id)::int as count
       FROM subscribers
       WHERE project_id = ${projectId}
-        AND created_at >= ${thirtyDaysAgo}
+        AND created_at >= ${timeframeDate}
       GROUP BY 1
       ORDER BY 1 ASC
     `);
+
+    // Fill gaps
+    const rows = dailyGrowth.rows as any[];
+    const filledData = [];
+    const chartStartDate = new Date(timeframeDate);
+    chartStartDate.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i <= days; i++) {
+      const d = new Date(chartStartDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const dateStr = d.toISOString().split("T")[0];
+
+      const existing = rows.find((row) => {
+        const rowDate = new Date(row.date);
+        return rowDate.toISOString().split("T")[0] === dateStr;
+      });
+
+      filledData.push({
+        date: dateStr,
+        count: existing ? existing.count : 0,
+      });
+    }
 
     // 5. Recent Activity Feed
     const recentSubscribers = await db
@@ -117,7 +139,7 @@ export const getProjectAnalytics = async (
           lastPostSent: lastEmail?.sentAt ?? null,
           openRate: 0, // Mocked for now
         },
-        chartData: dailyGrowth.rows,
+        chartData: filledData,
         activity,
         lastPost: lastEmail
           ? {

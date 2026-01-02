@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { useEmails, Email } from "@/hooks/use-emails";
-import { useCreateEmail } from "@/hooks/use-create-email";
-import { useUpdateEmail } from "@/hooks/use-update-email";
-import { useDeleteEmail } from "@/hooks/use-delete-email";
+import {
+  useEmails,
+  useCreateEmail,
+  useUpdateEmail,
+  useDeleteEmail,
+  type Email,
+} from "@/hooks/use-emails";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,

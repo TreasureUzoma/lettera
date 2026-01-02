@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { useSubscribers } from "@/hooks/use-subscribers";
-import { useCreateSubscriber } from "@/hooks/use-create-subscriber";
-import { useDeleteSubscriber } from "@/hooks/use-delete-subscriber";
+import {
+  useSubscribers,
+  useCreateSubscriber,
+  useDeleteSubscriber,
+} from "@/hooks/use-subscribers";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -76,12 +78,16 @@ import Link from "next/link";
 export default function ProjectSubscribersPage() {
   const params = useParams();
   const projectId = params.id as string;
-  const { data: subscribers, isLoading } = useSubscribers(projectId);
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useSubscribers(projectId, page);
   const { mutate: createSubscriber, isPending: isCreating } =
     useCreateSubscriber(projectId);
   const { mutate: deleteSubscriber, isPending: isDeleting } =
     useDeleteSubscriber(projectId);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const subscribers = data?.data || [];
+  const meta = data?.meta;
 
   const form = useForm<CreateSubscriber>({
     resolver: zodResolver(createProjectSubscriberSchema),
@@ -93,12 +99,18 @@ export default function ProjectSubscribersPage() {
   });
 
   const onSubmit = (values: CreateSubscriber) => {
-    createSubscriber(values, {
-      onSuccess: () => {
-        setIsDialogOpen(false);
-        form.reset();
+    createSubscriber(
+      {
+        email: values.email,
+        name: values.name || undefined,
       },
-    });
+      {
+        onSuccess: () => {
+          setIsDialogOpen(false);
+          form.reset();
+        },
+      }
+    );
   };
 
   if (isLoading) {
@@ -235,63 +247,90 @@ export default function ProjectSubscribersPage() {
         </CardHeader>
         <CardContent>
           {subscribers && subscribers.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {subscribers.map((subscriber) => (
-                  <TableRow key={subscriber.id}>
-                    <TableCell>{subscriber.email}</TableCell>
-                    <TableCell>{subscriber.name || "-"}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                        {subscriber.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(subscriber.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Delete Subscriber
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to remove this subscriber?
-                              They will no longer receive emails from this
-                              project.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteSubscriber(subscriber.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
+            <div className="space-y-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {subscribers.map((subscriber) => (
+                    <TableRow key={subscriber.id}>
+                      <TableCell>{subscriber.email}</TableCell>
+                      <TableCell>{subscriber.name || "-"}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                          {subscriber.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(subscriber.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete Subscriber
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to remove this subscriber?
+                                They will no longer receive emails from this
+                                project.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteSubscriber(subscriber.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-end space-x-2 py-4">
+                <div className="text-sm text-muted-foreground flex-1">
+                  Page {meta?.page ?? 1} of {meta?.totalPages ?? 1}
+                </div>
+                <div className="space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={!meta?.hasPrevPage}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={!meta?.hasNextPage}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <p className="text-muted-foreground mb-4">

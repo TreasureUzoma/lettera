@@ -87,6 +87,33 @@ export const verifyResetPasswordSchema = z.object({
 
 export type VerifyResetPassword = z.infer<typeof verifyResetPasswordSchema>;
 
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .trim()
+      .min(7, "Password must be at least 7 characters")
+      .max(50, "Password must be less than 50 characters"),
+
+    newPassword: z
+      .string()
+      .trim()
+      .min(7, "Password must be at least 7 characters")
+      .max(50, "Password must be less than 50 characters"),
+
+    confirmPassword: z
+      .string()
+      .trim()
+      .min(7, "Password must be at least 7 characters")
+      .max(50, "Password must be less than 50 characters"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match",
+  });
+
+export type ChangePasswordData = z.infer<typeof changePasswordSchema>;
+
 export const verifyEmailSchema = z.object({
   email: z.string().email(),
   token: z.string().uuid("Invalid Token"),
@@ -208,10 +235,7 @@ export const unsubscribeFromProjectSchema = z.object({
 export type UnsubscribeRequest = z.infer<typeof unsubscribeFromProjectSchema>;
 
 export const createProjectSubscriberSchema = z.object({
-  name: z.preprocess(
-    (val) => (val === "" ? undefined : val),
-    z.string().min(2).max(40).optional()
-  ),
+  name: z.string().min(2).max(40).optional().or(z.literal("")),
   email: z.string().email(),
   projectId: z.string().min(1),
 });
@@ -274,6 +298,7 @@ export const dashboardOverviewSchema = z.object({
   sort: z
     .enum(["name", "activity", "newest", "oldest", "revenue", "subscribers"])
     .optional(),
+  search: z.string().optional(),
 });
 
 export type DashboardOverview = z.infer<typeof dashboardOverviewSchema>;

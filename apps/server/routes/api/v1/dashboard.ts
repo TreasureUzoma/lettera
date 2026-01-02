@@ -8,6 +8,59 @@ import { Hono } from "hono";
 
 const dashboardRoute = new Hono<AppBindings>();
 
+// Get dashboard stats only (doesn't change with search/filter)
+dashboardRoute.get("/stats", async (c) => {
+  const cookieUser = c.get("user") as AuthType;
+  const serviceData = await getDashboardOverview(cookieUser.id, 1, 1);
+
+  if (!serviceData.success || !serviceData.data) {
+    return c.json(serviceData, routeStatus(serviceData));
+  }
+
+  return c.json(
+    {
+      success: true,
+      message: "Dashboard stats fetched successfully",
+      data: { stats: serviceData.data.stats },
+    },
+    200
+  );
+});
+
+// Get dashboard projects only (filtered by search/sort)
+dashboardRoute.get(
+  "/projects",
+  zValidator("query", dashboardOverviewSchema, (result, c) => {
+    if (!result.success) return validationErrorResponse(c, result.error);
+  }),
+  async (c) => {
+    const cookieUser = c.get("user") as AuthType;
+    const { page, limit, sort, search } = c.req.valid("query");
+
+    const serviceData = await getDashboardOverview(
+      cookieUser.id,
+      page,
+      limit,
+      sort,
+      search
+    );
+
+    if (!serviceData.success || !serviceData.data) {
+      return c.json(serviceData, routeStatus(serviceData));
+    }
+
+    return c.json(
+      {
+        success: true,
+        message: "Dashboard projects fetched successfully",
+        data: { projects: serviceData.data.projects },
+      },
+      200
+    );
+  }
+);
+
+// Get full dashboard overview (backward compatibility)
 dashboardRoute.get(
   "/overview",
   zValidator("query", dashboardOverviewSchema, (result, c) => {
@@ -15,13 +68,14 @@ dashboardRoute.get(
   }),
   async (c) => {
     const cookieUser = c.get("user") as AuthType;
-    const { page, limit, sort } = c.req.valid("query");
+    const { page, limit, sort, search } = c.req.valid("query");
 
     const serviceData = await getDashboardOverview(
       cookieUser.id,
       page,
       limit,
-      sort
+      sort,
+      search
     );
 
     return c.json(serviceData, routeStatus(serviceData));

@@ -1,22 +1,36 @@
 import { db } from "@workspace/db";
 import { subscribers } from "@workspace/db/schema";
 import type { ServiceResponse } from "@workspace/types";
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
+import { paginate } from "@/utils/pagination";
 
 export const getSubscribers = async (
-  projectId: string
+  projectId: string,
+  page = 1,
+  limit = 10
 ): Promise<ServiceResponse> => {
   try {
-    const data = await db
+    const offset = (page - 1) * limit;
+
+    const dbQuery = db
       .select()
       .from(subscribers)
       .where(eq(subscribers.projectId, projectId))
-      .orderBy(desc(subscribers.createdAt));
+      .orderBy(desc(subscribers.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const countQuery = db
+      .select({ count: count() })
+      .from(subscribers)
+      .where(eq(subscribers.projectId, projectId));
+
+    const paginatedData = await paginate(dbQuery, countQuery, page, limit);
 
     return {
       success: true,
       message: "Fetched subscribers successfully",
-      data,
+      data: paginatedData,
     };
   } catch (err) {
     return {

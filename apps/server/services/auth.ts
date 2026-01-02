@@ -14,8 +14,9 @@ import type {
 import { google } from "googleapis";
 import { db } from "@workspace/db";
 import { passwordResets, refreshTokens, users } from "@workspace/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { sendForgottenPasswordEmail, sendWelcomeEmail } from "./mail/internal";
+import { type ChangePasswordData } from "@workspace/validations";
 
 const GOOGLE_REDIRECT_URI = `${envConfig.APP_URL}/api/v1/auth/google/callback`;
 const GITHUB_REDIRECT_URI = `${envConfig.APP_URL}/api/v1/auth/github/callback`;
@@ -362,4 +363,81 @@ export const verifyEmail = async (payload: VerifyEmail) => {
     .where(eq(users.id, resetRecord.userId));
 
   return { success: true, message: "Email verified successfully" };
+};
+
+export const changePassword = async (
+  userId: string,
+  data: ChangePasswordData
+) => {
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user || !user.password) {
+    return { success: false, message: "User not found or invalid" };
+  }
+
+  const valid = await Bun.password.verify(data.currentPassword, user.password);
+  if (!valid) {
+    return { success: false, message: "Incorrect current password" };
+  }
+
+  const hashedPassword = await Bun.password.hash(data.newPassword);
+
+  await db
+    .update(users)
+    .set({ password: hashedPassword })
+    .where(eq(users.id, userId));
+
+  return { success: true, message: "Password updated successfully" };
+};
+
+export const getActiveSessions = async (userId: string) => {
+  const sessions = await db
+    .select({
+      id: refreshTokens.id,
+      userAgent: refreshTokens.userAgent,
+      expiresAt: refreshTokens.expiresAt,
+    })
+    .from(refreshTokens)
+    .where(
+      and(eq(refreshTokens.userId, userId), eq(refreshTokens.revoked, false))
+    )
+    .orderBy(desc(refreshTokens.expiresAt));
+
+  return {
+    success: true,
+    data: sessions,
+    message: "Sessions fetched successfully",
+  };
+};
+
+export const revokeSession = async (sessionId: string, userId: string) => {
+  await db
+    .update(refreshTokens)
+    .set({ revoked: true })
+    .where(
+      and(eq(refreshTokens.id, sessionId), eq(refreshTokens.userId, userId))
+    );
+
+  return { success: true, message: "Session signed out successfully" };
+};
+
+export const revokeAllOtherSessions = async (
+  currentSessionId: string,
+  userId: string
+) => {
+  await db
+    .update(refreshTokens)
+    .set({ revoked: true })
+    .where(
+      and(
+        eq(refreshTokens.userId, userId),
+        ne(refreshTokens.id, currentSessionId)
+      )
+    );
+
+  return { success: true, message: "All other sessions signed out" };
 };

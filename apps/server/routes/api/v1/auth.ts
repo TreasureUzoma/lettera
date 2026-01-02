@@ -6,6 +6,7 @@ import {
   verifyResetPasswordSchema,
   isValidEmail,
   verifyEmailSchema,
+  changePasswordSchema,
 } from "@workspace/validations";
 import {
   login,
@@ -17,6 +18,9 @@ import {
   getGoogleAuthUrl,
   getGithubAuthUrl,
   verifyEmail,
+  changePassword,
+  getActiveSessions,
+  revokeSession,
 } from "@/services/auth";
 import { getSignedCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
@@ -29,8 +33,9 @@ import {
 } from "@/utils/auth-tokens";
 import type { Context } from "hono";
 import type { ServiceResponse } from "@workspace/types";
-import { z } from "zod";
 import { validationErrorResponse } from "@/utils/validation-error-response";
+import type { AuthType } from "@/types";
+import { routeStatus } from "@/lib/utils";
 
 const authRoute = new Hono();
 
@@ -267,5 +272,38 @@ authRoute.post(
     return c.json(serviceData, 200);
   }
 );
+
+authRoute.post(
+  "/change-password",
+  zValidator("json", changePasswordSchema, (result, c) => {
+    if (!result.success) return validationErrorResponse(c, result.error);
+  }),
+  async (c) => {
+    const user = c.get("user") as AuthType;
+    if (!user) return c.json({ success: false, message: "Unauthorized" }, 401);
+
+    const body = c.req.valid("json");
+    const serviceData = await changePassword(user.id, body);
+
+    return c.json(serviceData, routeStatus(serviceData));
+  }
+);
+
+authRoute.get("/sessions", async (c) => {
+  const user = c.get("user") as AuthType;
+  if (!user) return c.json({ success: false, message: "Unauthorized" }, 401);
+
+  const serviceData = await getActiveSessions(user.id);
+  return c.json(serviceData, routeStatus(serviceData));
+});
+
+authRoute.delete("/sessions/:id", async (c) => {
+  const user = c.get("user") as AuthType;
+  if (!user) return c.json({ success: false, message: "Unauthorized" }, 401);
+
+  const sessionId = c.req.param("id");
+  const serviceData = await revokeSession(sessionId, user.id);
+  return c.json(serviceData, routeStatus(serviceData));
+});
 
 export default authRoute;

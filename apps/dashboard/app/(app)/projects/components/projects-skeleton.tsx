@@ -27,7 +27,7 @@ export function ProjectsSkeleton() {
       {/* Search and Filter Skeleton */}
       <div className="flex items-center justify-center gap-3 w-full">
         <Skeleton className="h-14 w-full flex-1" />
-        <Skeleton className="h-10 w-10" />
+        <Skeleton className="h-14 w-10" />
       </div>
 
       {/* Project List Skeleton */}

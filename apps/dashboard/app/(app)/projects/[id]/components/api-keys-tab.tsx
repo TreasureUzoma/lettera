@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { useProjectApiKeys } from "@/hooks/use-project-api-keys";
-import { useCreateProjectApiKey } from "@/hooks/use-create-project-api-key";
-import { useDeleteProjectApiKey } from "@/hooks/use-delete-project-api-key";
+import {
+  useProjectApiKeys,
+  useCreateProjectApiKey,
+  useDeleteProjectApiKey,
+} from "@/hooks/use-project-api-keys";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -107,7 +109,7 @@ export function ApiKeysTab({ projectId }: { projectId: string }) {
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => deleteApiKey(key.id)}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      className="bg-destructive text-white hover:bg-destructive/90"
                     >
                       Delete
                     </AlertDialogAction>

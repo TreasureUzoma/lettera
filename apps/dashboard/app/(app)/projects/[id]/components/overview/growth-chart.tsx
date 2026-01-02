@@ -20,6 +20,8 @@ interface GrowthChartProps {
     date: string;
     count: number;
   }>;
+  timeframe: number;
+  onTimeframeChange: (timeframe: number) => void;
 }
 
 const chartConfig = {
@@ -29,7 +31,11 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function GrowthChart({ data }: GrowthChartProps) {
+export function GrowthChart({
+  data,
+  timeframe,
+  onTimeframeChange,
+}: GrowthChartProps) {
   const chartData =
     data?.map((d) => ({
       date: new Date(d.date).toLocaleDateString("en-US", {
@@ -45,15 +51,18 @@ export function GrowthChart({ data }: GrowthChartProps) {
         <CardTitle className="text-lg font-semibold">
           Subscriber Growth
         </CardTitle>
-        <Tabs defaultValue="30d">
+        <Tabs
+          value={timeframe.toString()}
+          onValueChange={(v) => onTimeframeChange(parseInt(v))}
+        >
           <TabsList className="h-8">
-            <TabsTrigger value="7d" className="text-xs">
+            <TabsTrigger value="7" className="text-xs">
               7d
             </TabsTrigger>
-            <TabsTrigger value="30d" className="text-xs">
+            <TabsTrigger value="30" className="text-xs">
               30d
             </TabsTrigger>
-            <TabsTrigger value="90d" className="text-xs">
+            <TabsTrigger value="90" className="text-xs">
               90d
             </TabsTrigger>
           </TabsList>
