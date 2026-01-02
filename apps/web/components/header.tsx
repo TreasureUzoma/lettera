@@ -10,6 +10,7 @@ const navLinks = [
   {
     title: "docs",
     url: "/docs",
+    external: true,
   },
   {
     title: "pricing",
@@ -27,11 +28,27 @@ export const Header = () => {
           </Link>
         </div>
         <div className="flex items-center justify-center gap-x-4 font-medium">
-          {navLinks.map((link) => (
-            <Link key={link.title} className="hover:underline" href={link.url}>
-              {link.title}
-            </Link>
-          ))}
+          {navLinks.map((link) =>
+            link.external ? (
+              <a
+                key={link.title}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
+                {link.title}
+              </a>
+            ) : (
+              <Link
+                key={link.title}
+                href={link.url}
+                className="hover:underline"
+              >
+                {link.title}
+              </Link>
+            )
+          )}
         </div>
       </div>
     </nav>

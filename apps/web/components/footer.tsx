@@ -7,15 +7,14 @@ const footerSections = [
     title: "product",
     links: [
       { name: "overview", url: "/" },
-      { name: "pricing", url: "/pricing" },
-      { name: "docs", url: "/docs" },
+      { name: "pricing", url: "/#pricing" },
+      { name: "docs", url: "/docs", external: true },
     ],
   },
   {
     title: "company",
     links: [
       { name: "about", url: "/about" },
-      { name: "blog", url: "/blog" },
       { name: "contact", url: "/contact" },
       { name: "privacy", url: "/privacy" },
       { name: "terms", url: "/terms" },
@@ -48,12 +47,23 @@ export const Footer = () => {
             <ul className="space-y-2">
               {section.links.map((link) => (
                 <li key={link.name}>
-                  <Link
-                    href={link.url}
-                    className="hover:underline hover:text-muted-foreground"
-                  >
-                    {link.name}
-                  </Link>
+                  {link.external ? (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline hover:text-muted-foreground"
+                    >
+                      {link.name}
+                    </a>
+                  ) : (
+                    <Link
+                      href={link.url}
+                      className="hover:underline hover:text-muted-foreground"
+                    >
+                      {link.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
