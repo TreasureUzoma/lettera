@@ -18,7 +18,9 @@ import { SettingsLayout } from "../components/settings-layout";
 export default function BillingSettingsPage() {
   const { data: profile } = useGetProfile();
   const currentPlanSlug = profile?.plan || "hobby";
-  const currentPlan = plans.find((p) => p.slug === currentPlanSlug) || plans[0];
+  /* eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain */
+  const currentPlan =
+    plans.find((p) => p.slug === currentPlanSlug) || plans[0]!;
 
   return (
     <SettingsLayout>

@@ -8,8 +8,8 @@ const navLinks = [
     url: "/login",
   },
   {
-    title: "blog",
-    url: "/blog",
+    title: "docs",
+    url: "/docs",
   },
   {
     title: "pricing",
