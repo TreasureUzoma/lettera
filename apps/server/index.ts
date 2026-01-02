@@ -1,10 +1,8 @@
 import { Hono } from "hono";
 import { logger } from "hono/logger";
-import { serve } from "bun";
 import { rateLimiter } from "./middlewares/rate-limiter";
 import { withAuth } from "./middlewares/session";
 import authRoute from "./routes/api/v1/auth";
-import { envConfig } from "./config";
 import type { Context } from "hono";
 import type { AuthType } from "./types";
 import projectsRoute from "./routes/api/v1/projects";
@@ -14,14 +12,23 @@ import externalProjectRoutes from "./routes/api/v1/external/projects";
 import profileRoutes from "./routes/api/v1/profiles";
 import postRoutes from "./routes/api/v1/posts";
 import dashboardRoute from "./routes/api/v1/dashboard";
+import { start } from "workflow/api";
+import { myTestWorkflow } from "./tests/workflow";
 
 const app = new Hono();
+
+app.use(logger());
 
 app.notFound((c) => {
   return c.json({ message: "Not Found" }, 404);
 });
 
-app.use(logger());
+app.get("/test-workflow", async (c) => {
+  await start(myTestWorkflow);
+  return c.json({
+    message: "Workflow started",
+  });
+});
 
 app.onError((err, c) => {
   return c.json(
@@ -35,6 +42,13 @@ app.onError((err, c) => {
 });
 
 const v1 = new Hono().basePath("/api/v1");
+
+v1.get("/test-workflow", rateLimiter(60 * 1000, 5), async (c) => {
+  await start(myTestWorkflow);
+  return c.json({
+    message: "Workflow started",
+  });
+});
 
 v1.get("/health", rateLimiter(60 * 1000, 5), (c) => {
   return c.json({ message: "Server is healthy!" });
@@ -84,9 +98,4 @@ v1.route("/dashboard", dashboardRoute.use(rateLimiter(60 * 60 * 1000, 70)));
 
 app.route("/", v1);
 
-const server = serve({
-  fetch: app.fetch,
-  port: envConfig.PORT,
-});
-
-console.log(`Server running at http://localhost:${server.port}`);
+export default app;

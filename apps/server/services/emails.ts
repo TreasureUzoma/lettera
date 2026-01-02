@@ -44,6 +44,48 @@ export const getEmails = async (
   }
 };
 
+export const getEmail = async (
+  projectId: string,
+  emailId: string
+): Promise<ServiceResponse> => {
+  try {
+    const [email] = await db
+      .select()
+      .from(emails)
+      .where(and(eq(emails.projectId, projectId), eq(emails.id, emailId)));
+
+    if (!email) {
+      return {
+        success: false,
+        message: "Email not found",
+        data: null,
+      };
+    }
+
+    try {
+      email.body = await decryptDataSubtle(email.body, encryptionKey);
+    } catch (e) {
+      console.error(`Failed to decrypt email body for ${email.id}`, e);
+      email.body = "Failed to decrypt content";
+    }
+
+    return {
+      success: true,
+      message: "Fetched email successfully",
+      data: email,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message:
+        err instanceof Error
+          ? err.message
+          : "Something went wrong fetching email",
+      data: null,
+    };
+  }
+};
+
 export const createEmail = async (
   projectId: string,
   subject: string,

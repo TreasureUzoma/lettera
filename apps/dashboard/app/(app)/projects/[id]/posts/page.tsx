@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import {
-  useEmails,
-  useCreateEmail,
-  useUpdateEmail,
-  useDeleteEmail,
-  type Email,
-} from "@/hooks/use-emails";
+import { useEmails, useDeleteEmail } from "@/hooks/use-emails";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -17,8 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import { Input } from "@workspace/ui/components/input";
-import { MarkdownSplitEditor } from "@/components/markdown-split-editor";
 import {
   Table,
   TableBody,
@@ -27,15 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@workspace/ui/components/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,72 +32,13 @@ import {
 } from "@workspace/ui/components/alert-dialog";
 import { Loader2, Plus, Trash2, Mail, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function ProjectPostsPage() {
   const params = useParams();
   const projectId = params.id as string;
   const { data: emails, isLoading } = useEmails(projectId);
-  const { mutate: createEmail, isPending: isCreating } =
-    useCreateEmail(projectId);
-  const { mutate: updateEmail, isPending: isUpdating } =
-    useUpdateEmail(projectId);
-  const { mutate: deleteEmail, isPending: isDeleting } =
-    useDeleteEmail(projectId);
-
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingEmail, setEditingEmail] = useState<Email | null>(null);
-
-  const [subject, setSubject] = useState("");
-  const [content, setContent] = useState("");
-
-  const handleOpenDialog = (email?: Email) => {
-    if (email) {
-      setEditingEmail(email);
-      setSubject(email.subject);
-      // If content was legacy JSON, we just show it stringified.
-      // User can clear it.
-      setContent(email.body || "");
-    } else {
-      setEditingEmail(null);
-      setSubject("");
-      setContent("");
-    }
-    setIsDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    if (!subject) {
-      toast.error("Subject is required");
-      return;
-    }
-    if (!content) {
-      toast.error("Content is required");
-      return;
-    }
-
-    if (editingEmail) {
-      updateEmail(
-        {
-          emailId: editingEmail.id,
-          subject,
-          body: content,
-        },
-        {
-          onSuccess: () => setIsDialogOpen(false),
-        }
-      );
-    } else {
-      createEmail(
-        {
-          subject,
-          body: content,
-        },
-        {
-          onSuccess: () => setIsDialogOpen(false),
-        }
-      );
-    }
-  };
+  const { mutate: deleteEmail } = useDeleteEmail(projectId);
 
   if (isLoading) {
     return (
@@ -133,53 +57,13 @@ export default function ProjectPostsPage() {
             Create and manage your newsletters and posts.
           </p>
         </div>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="w-4 h-4 mr-2" />
-          Create Post
+        <Button asChild>
+          <Link href={`/projects/${projectId}/posts/new`}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Post
+          </Link>
         </Button>
       </div>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[1000px] h-[85vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>
-              {editingEmail ? "Edit Post" : "Create New Post"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingEmail
-                ? "Update your post content."
-                : "Draft a new post or newsletter."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 flex-1 flex flex-col min-h-0 overflow-y-auto p-1">
-            <div className="space-y-2 shrink-0">
-              <label className="text-sm font-medium">Subject</label>
-              <Input
-                placeholder="Post Subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-              />
-            </div>
-            <div className="flex-1 min-h-0">
-              <MarkdownSplitEditor
-                value={content}
-                onChange={setContent}
-                className="h-full"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="shrink-0">
-            <Button onClick={handleSave} disabled={isCreating || isUpdating}>
-              {(isCreating || isUpdating) && (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              )}
-              {editingEmail ? "Update Post" : "Create Post"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Card>
         <CardHeader>
@@ -221,12 +105,12 @@ export default function ProjectPostsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenDialog(email)}
-                        >
-                          <Pencil className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link
+                            href={`/projects/${projectId}/posts/${email.id}`}
+                          >
+                            <Pencil className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                          </Link>
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -267,9 +151,11 @@ export default function ProjectPostsPage() {
               <p className="text-muted-foreground mb-4">
                 No posts found. Create your first post to get started.
               </p>
-              <Button variant="outline" onClick={() => handleOpenDialog()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Post
+              <Button asChild variant="outline">
+                <Link href={`/projects/${projectId}/posts/new`}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Post
+                </Link>
               </Button>
             </div>
           )}

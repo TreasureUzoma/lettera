@@ -74,7 +74,15 @@ export const updateProjectPost = async (
     }
 
     if (body.status === "published") {
-      await sendEmailNewsletter();
+      const scheduledTime = body.sentAt ? new Date(body.sentAt) : new Date();
+      if (scheduledTime.getTime() > Date.now()) {
+        await start(emailCampaignWorkflow, {
+          emailId: postId,
+          scheduledTime: scheduledTime,
+        });
+      } else {
+        await sendEmailNewsletter();
+      }
     }
 
     if (!updatedPost) {

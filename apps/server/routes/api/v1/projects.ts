@@ -20,6 +20,7 @@ import {
 } from "@/services/subscribers";
 import {
   getEmails,
+  getEmail,
   createEmail,
   deleteEmail,
   updateEmail,
@@ -442,6 +443,30 @@ projectsRoute.get(
     const project = projectOrRes;
 
     const serviceData = await getEmails(project.id);
+    return c.json(serviceData, routeStatus(serviceData));
+  }
+);
+
+// get a single email
+projectsRoute.get(
+  "/:id/emails/:emailId",
+  zValidator(
+    "param",
+    z.object({ id: z.string().min(1), emailId: z.string().uuid() }),
+    (result, c) => {
+      console.log("started");
+      if (!result.success) {
+        return validationErrorResponse(c, result.error);
+      }
+    }
+  ),
+  async (c) => {
+    const { id: projectId, emailId } = c.req.valid("param");
+    const projectOrRes = await getProjectOrFail(c, projectId);
+    if (projectOrRes instanceof Response) return projectOrRes;
+    const project = projectOrRes;
+
+    const serviceData = await getEmail(project.id, emailId);
     return c.json(serviceData, routeStatus(serviceData));
   }
 );

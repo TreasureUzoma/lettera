@@ -1,6 +1,11 @@
 {
   "extends": "@workspace/typescript-config/nextjs.json",
   "compilerOptions": {
+    "plugins": [
+      {
+        "name": "workflow"
+      }
+    ],
     // Environment setup & latest features
     "lib": ["ESNext"],
     "target": "ESNext",

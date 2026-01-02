@@ -24,9 +24,24 @@ export function useEmails(projectId: string) {
   });
 }
 
+export function useEmail(projectId: string, emailId: string) {
+  return useQuery({
+    queryKey: ["email", projectId, emailId],
+    queryFn: async () => {
+      const res = await api.get<{ data: Email }>(
+        `/projects/${projectId}/emails/${emailId}`
+      );
+      return res.data.data;
+    },
+    enabled: !!projectId && !!emailId,
+  });
+}
+
 interface CreateEmailData {
   subject: string;
   body: string;
+  sentAt?: string;
+  status?: "published" | "draft";
 }
 
 export function useCreateEmail(projectId: string) {
@@ -55,6 +70,7 @@ type UpdateEmailValues = {
   subject?: string;
   body?: string;
   status?: "published" | "draft";
+  sentAt?: string;
 };
 
 export function useUpdateEmail(projectId: string) {

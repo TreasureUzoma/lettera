@@ -1,0 +1,22 @@
+{
+  "runId": "wrun_01KE0AB6AJ39H8M13NKWHJYK0C",
+  "status": "completed",
+  "deploymentId": "dpl_local@4.0.1-beta.20",
+  "workflowName": "workflow//tests/workflow.ts//myTestWorkflow",
+  "executionContext": {
+    "traceCarrier": {}
+  },
+  "input": [
+    []
+  ],
+  "startedAt": "2026-01-02T21:38:15.353Z",
+  "createdAt": "2026-01-02T21:38:14.994Z",
+  "updatedAt": "2026-01-02T21:38:21.099Z",
+  "output": [
+    {
+      "status": 1
+    },
+    "completed"
+  ],
+  "completedAt": "2026-01-02T21:38:21.099Z"
+}
