@@ -1,0 +1,57 @@
+/* Sidebar animations and transitions */
+.sidebar {
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebarCollapsed {
+  width: 4rem;
+}
+
+.sidebarExpanded {
+  width: 16rem;
+}
+
+/* Smooth scrolling for nav items */
+.navScroll {
+  scroll-behavior: smooth;
+}
+
+/* Tooltip styling */
+.tooltip {
+  position: absolute;
+  left: 100%;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  font-size: 0.75rem;
+  border-radius: 0.375rem;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 50;
+  transition: opacity 200ms ease-out;
+}
+
+.navItem:hover .tooltip {
+  opacity: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sidebarExpanded {
+    width: 14rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    transition: left 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .sidebarOpen {
+    left: 0;
+  }
+}

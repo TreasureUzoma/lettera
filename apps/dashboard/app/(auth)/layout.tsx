@@ -6,7 +6,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div>
+    <div className="bg-muted">
       <AuthHeader />
       {children}
     </div>

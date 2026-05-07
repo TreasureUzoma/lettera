@@ -16,7 +16,7 @@ export default async function LoginPage({
   const VALID_OAUTH_ERRORS: OauthParamErros[] = ["missing_code", "auth_failed"];
   const error = (await searchParams).error;
   return (
-    <div className="bg-muted flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+    <div className="flex min-h-screen md:min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
       <div className="flex w-full flex-col gap-6 flex-center">
         {error && VALID_OAUTH_ERRORS.includes(error) && (
           <Alert variant="destructive">

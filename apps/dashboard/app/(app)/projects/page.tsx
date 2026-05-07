@@ -49,8 +49,8 @@ export default function ProjectsPage() {
 
   if (sessionLoading) {
     return (
-      <div className="min-h-screen px-4 my-12 flex-col gap-6 flex">
-        <div className="space-y-2">
+      <div className="min-h-screen px-8 py-12 flex-col gap-8 flex">
+        <div className="space-y-3">
           <div className="h-8 w-48 bg-muted animate-pulse rounded" />
           <div className="h-4 w-64 bg-muted animate-pulse rounded" />
         </div>
@@ -62,21 +62,35 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="min-h-screen px-4 my-12 flex-col gap-6 flex">
-      <ProjectHeader email={data?.email ?? "User"} />
+    <div className="min-h-screen px-8 py-12 flex-col gap-8 flex">
+      {/* Header Section */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
+        <p className="text-muted-foreground">
+          Manage and monitor all your projects in one place
+        </p>
+      </div>
 
+      {/* Stats Section */}
       {isStatsLoading ? (
         <DashboardStatsSkeleton />
       ) : (
         <DashboardStats stats={statsData?.stats} />
       )}
 
-      <SearchAndFilter
-        onFilterChange={setSort}
-        onSearchChange={setSearch}
-        searchValue={search}
-      />
+      {/* Search and Filter Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Your Projects</h2>
+        </div>
+        <SearchAndFilter
+          onFilterChange={setSort}
+          onSearchChange={setSearch}
+          searchValue={search}
+        />
+      </div>
 
+      {/* Projects List Section */}
       {isProjectsLoading ? (
         <ProjectListSkeleton />
       ) : (
