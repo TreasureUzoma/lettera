@@ -13,7 +13,7 @@ import {
   LogOut,
   ChevronDown,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import Logo from "@workspace/ui/components/logo";
 import { Button } from "@workspace/ui/components/button";
 import { Separator } from "@workspace/ui/components/separator";
@@ -43,6 +43,8 @@ export default function AppSidebar() {
   const isProjectRoute =
     segments[0] === "projects" && !!segments[1] && segments[1] !== "new";
   const projectSlug = isProjectRoute ? segments[1] : null;
+
+  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
 
   const mainNavItems: NavItem[] = [
     {
@@ -170,51 +172,81 @@ export default function AppSidebar() {
 
       {/* User Section */}
       <div className="p-3 space-y-3">
-        {profileLoading ? (
-          <div className="flex items-center gap-3 px-3">
-            <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
-            {!isCollapsed && <Skeleton className="h-3 flex-1 rounded" />}
-          </div>
-        ) : (
-          <Link
-            href="/settings"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors group"
-          >
-            <Avatar className="w-8 h-8 flex-shrink-0">
-              <AvatarImage
-                className="rounded-lg"
-                src={
-                  profileData?.avatarUrl ||
-                  `https://avatar.idolo.dev/${profileData?.email}`
-                }
-                alt="user-avatar"
-              />
-              <AvatarFallback>L</AvatarFallback>
-            </Avatar>
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate text-foreground">
-                  {profileData?.email}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {profileData?.plan ?? "Free"}
-                </p>
-              </div>
-            )}
-          </Link>
-        )}
-
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn("w-full", isCollapsed && "w-8 h-8 p-0")}
-          asChild
+        <div
+          className="relative"
+          onMouseEnter={() => setIsUserMenuOpen(true)}
+          onMouseLeave={() => setIsUserMenuOpen(false)}
         >
-          <Link href="/api/auth/logout">
-            <LogOut className="w-4 h-4" />
-            {!isCollapsed && <span className="ml-2">Logout</span>}
-          </Link>
-        </Button>
+          {profileLoading ? (
+            <div className="flex items-center gap-3 px-3">
+              <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
+              {!isCollapsed && <Skeleton className="h-3 flex-1 rounded" />}
+            </div>
+          ) : (
+            <>
+              <button
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              >
+                <Avatar className="w-8 h-8 flex-shrink-0">
+                  <AvatarImage
+                    className="rounded-lg"
+                    src={
+                      profileData?.avatarUrl ||
+                      `https://avatar.idolo.dev/${profileData?.email}`
+                    }
+                    alt="user-avatar"
+                  />
+                  <AvatarFallback>L</AvatarFallback>
+                </Avatar>
+                {!isCollapsed && (
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-xs font-medium truncate text-foreground">
+                      {profileData?.email}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {profileData?.plan ?? "Free"}
+                    </p>
+                  </div>
+                )}
+              </button>
+
+              {/* Dropdown Menu */}
+              <AnimatePresence>
+                {isUserMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.15 }}
+                    className={cn(
+                      "absolute bottom-full left-0 right-0 mb-2 bg-popover border border-border rounded-lg shadow-lg overflow-hidden z-50",
+                      isCollapsed && "left-auto right-auto w-48"
+                    )}
+                  >
+                    <Link
+                      href="/settings"
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-muted transition-colors text-foreground"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      <Settings className="w-4 h-4" />
+                      Settings
+                    </Link>
+                    <Separator className="my-1" />
+                    <Link
+                      href="/api/auth/logout"
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-destructive/10 transition-colors text-destructive"
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </Link>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+        </div>
       </div>
     </aside>
   );
