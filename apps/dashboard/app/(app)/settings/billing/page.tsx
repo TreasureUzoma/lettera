@@ -107,6 +107,11 @@ export default function BillingSettingsPage() {
                       plan.slug === currentPlanSlug ? "outline" : "default"
                     }
                     disabled={plan.slug === currentPlanSlug}
+                    onClick={() => {
+                      if (plan.slug !== currentPlanSlug) {
+                        window.location.href = `/settings/billing/subscribe?plan=${plan.slug}`;
+                      }
+                    }}
                   >
                     {plan.slug === currentPlanSlug ? "Current Plan" : "Upgrade"}
                   </Button>

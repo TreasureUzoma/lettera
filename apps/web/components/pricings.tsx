@@ -173,7 +173,7 @@ export function Pricings() {
               href={
                 plan.name === "enterprise"
                   ? `mailto:${meta.salesEmail}?subject=Enterprise Inquiry`
-                  : `/billings/subscribe?plan=${plan.name}`
+                  : `settings/billing/subscribe?plan=${plan.name}`
               }
             >
               {pricing.totalPrice === null ? "contact sales" : "get started"}

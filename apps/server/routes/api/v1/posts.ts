@@ -12,7 +12,7 @@ import { Hono } from "hono";
 
 const postRoutes = new Hono();
 
-// create project as draft
+// create post as draft
 postRoutes.post(
   "/",
   zValidator("json", insertPostSchema, (result, c) => {
@@ -32,7 +32,7 @@ postRoutes.post(
   }
 );
 
-// update project status, if status published, it sends
+// update posts status, if status published, it sends
 postRoutes.patch(
   "/:id",
   zValidator("param", isValidUUID, (result, c) => {

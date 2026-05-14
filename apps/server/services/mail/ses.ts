@@ -1,11 +1,20 @@
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { envConfig } from "@/config";
 
-const sesClient = new SESClient({
+/* const sesClient = new SESClient({
   region: envConfig.AWS_REGION,
   credentials: {
     accessKeyId: envConfig.AWS_ACCESS_KEY_ID,
     secretAccessKey: envConfig.AWS_SECRET_ACCESS_KEY,
+  },
+});
+ */
+
+const sesClient = new SESClient({
+  region: "envConfig.AWS_REGION",
+  credentials: {
+    accessKeyId: "envConfig.AWS_ACCESS_KEY_ID",
+    secretAccessKey: "envConfig.AWS_SECRET_ACCESS_KEY",
   },
 });
 
