@@ -65,7 +65,7 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
     // Check refresh token
     const refreshToken = await getSignedCookie(
       c,
-      envConfig.JWT_REFRESH_SECRET!,
+      envConfig.JWT_REFRESH_SECRET,
       "letteraRefreshToken"
     );
     if (!refreshToken)
@@ -75,13 +75,22 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
     try {
       decodedRefresh = (await verify(
         refreshToken,
-        envConfig.JWT_REFRESH_SECRET!
+        envConfig.JWT_REFRESH_SECRET
       )) as { id: string };
     } catch {
       return c.json({ message: "Unauthorized", success: false }, 401);
     }
 
-    // Check if refresh token exists and not revoked
+    // Get user from database
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, decodedRefresh.id))
+      .limit(1);
+
+    if (!user) return c.json({ message: "Unauthorized", success: false }, 401);
+
+    // Check if this refresh token is revoked
     const [tokenRecord] = await db
       .select()
       .from(refreshTokens)
@@ -92,14 +101,7 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
       return c.json({ message: "Unauthorized", success: false }, 401);
     }
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, decodedRefresh.id))
-      .limit(1);
-
-    if (!user) return c.json({ message: "Unauthorized", success: false }, 401);
-
+    // Generate new tokens
     const {
       accessToken: newAccess,
       refreshToken: newRefresh,
@@ -111,16 +113,18 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
       user.subscriptionType ?? undefined
     );
 
+    // Update refresh token in database
     await db
       .update(refreshTokens)
       .set({ token: newRefresh, expiresAt: refreshExpDate })
       .where(eq(refreshTokens.token, refreshToken));
 
+    // Set new cookies
     await setSignedCookie(
       c,
       "letteraAccessToken",
       newAccess,
-      envConfig.JWT_ACCESS_SECRET!,
+      envConfig.JWT_ACCESS_SECRET,
       {
         httpOnly: true,
         secure: envConfig.NODE_ENV === "production",
@@ -134,7 +138,7 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
       c,
       "letteraRefreshToken",
       newRefresh,
-      envConfig.JWT_REFRESH_SECRET!,
+      envConfig.JWT_REFRESH_SECRET,
       {
         httpOnly: true,
         secure: envConfig.NODE_ENV === "production",
@@ -144,12 +148,14 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
       }
     );
 
+    // Set user in context
     c.set("user", {
       id: user.id,
       email: user.email,
       name: user.name,
       plan: user.subscriptionType ?? undefined,
     });
+    
     return await next();
   } catch (err) {
     console.error("Auth middleware error:", err);

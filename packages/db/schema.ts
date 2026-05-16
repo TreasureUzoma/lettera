@@ -59,6 +59,7 @@ export const paymentProviderEnum = pgEnum("payment_provider", [
   "paypal",
   "flutterwave",
   "paystack",
+  "paddle",
   "manual",
 ]);
 export const emailTypeEnum = pgEnum("email_type", ["email", "web", "both"]);

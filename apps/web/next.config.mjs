@@ -20,7 +20,7 @@ const nextConfig = {
       "projects",
       "projects/:path+",
       "settings",
-      "settings/:path",
+      "settings/:path+",
       "activity",
       "username",
       "username/:path+",

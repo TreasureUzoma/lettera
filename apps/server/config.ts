@@ -14,6 +14,10 @@ const envSchema = z.object({
   ENCRYPTION_KEY: z.string(),
   UNSUBSCRIBE_SECRET: z.string(),
   NEWSLETTER_DOMAIN: z.string().default("newsletter.lettera.dev"),
+  AWS_REGION: z.string().default("us-east-1"),
+  AWS_ACCESS_KEY_ID: z.string(),
+  AWS_SECRET_ACCESS_KEY: z.string(),
+  PADDLE_API_KEY: z.string(),
 });
 
 export const envConfig = envSchema.parse(process.env);

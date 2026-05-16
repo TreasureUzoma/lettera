@@ -15,8 +15,11 @@ import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { useGetProfile } from "@/hooks/use-auth";
 import { SettingsLayout } from "../../components/settings-layout";
 import { Alert, AlertDescription } from "@workspace/ui/components/alert";
+import { Skeleton } from "@workspace/ui/components/skeleton";
+import api from "@workspace/axios";
+import { toast } from "sonner";
 
-export default function SubscribePage() {
+export default function SubscribePage(): React.ReactNode {
   const searchParams = useSearchParams();
   const router = useRouter();
   const planSlug = searchParams.get("plan");
@@ -27,7 +30,7 @@ export default function SubscribePage() {
   const [success, setSuccess] = useState(false);
 
   const selectedPlan = plans.find((p) => p.slug === planSlug);
-  const currentPlan = plans.find((p) => p.slug === profile?.plan) || plans[0];
+  const currentPlan = plans.find((p) => p.slug === profile?.plan) || plans[0]!;
 
   // Redirect if no plan selected or invalid plan
   useEffect(() => {
@@ -50,24 +53,43 @@ export default function SubscribePage() {
     setError(null);
 
     try {
-      // TODO: Integrate with Stripe
-      // For now, this is a placeholder
-      console.log("Subscribing to plan:", selectedPlan.slug);
+      // If upgrading to free plan, just downgrade
+      if (selectedPlan.slug === "hobby") {
+        const response = await api.post("/subscriptions/cancel");
+        if (response.data.success) {
+          setSuccess(true);
+          toast.success("Subscription canceled successfully");
+          setTimeout(() => {
+            router.push("/settings/billing");
+            router.refresh();
+          }, 2000);
+        } else {
+          setError(response.data.message || "Failed to downgrade");
+          toast.error(response.data.message || "Failed to downgrade");
+        }
+        return;
+      }
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Create checkout session for paid plans
+      const response = await api.post("/subscriptions/checkout", {
+        planSlug: selectedPlan.slug,
+        successUrl: `${window.location.origin}/settings/billing?success=true`,
+        cancelUrl: `${window.location.origin}/settings/billing/subscribe?plan=${selectedPlan.slug}`,
+      });
 
-      setSuccess(true);
-
-      // Redirect after success
-      setTimeout(() => {
-        router.push("/settings/billing");
-        router.refresh();
-      }, 2000);
+      if (response.data.success && response.data.data?.url) {
+        toast.success("Redirecting to checkout...");
+        // Redirect to Paddle checkout
+        window.location.href = response.data.data.url;
+      } else {
+        setError(response.data.message || "Failed to create checkout");
+        toast.error(response.data.message || "Failed to create checkout");
+      }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to process subscription"
-      );
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to process subscription";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -76,8 +98,40 @@ export default function SubscribePage() {
   if (profileLoading || !selectedPlan) {
     return (
       <SettingsLayout>
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="w-8 h-8 animate-spin" />
+        <div className="max-w-2xl space-y-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+              </div>
+
+              <div className="flex justify-center">
+                <Skeleton className="h-4 w-4" />
+              </div>
+
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-12 w-full rounded-lg" />
+              </div>
+
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-4 w-full" />
+                ))}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 flex-1" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </SettingsLayout>
     );
@@ -227,13 +281,15 @@ export default function SubscribePage() {
           </CardContent>
         </Card>
 
-        {/* TODO Notice */}
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Stripe integration coming soon. This is a preview of the subscription flow.
-          </AlertDescription>
-        </Alert>
+        {/* Paddle Info */}
+        {selectedPlan.price !== 0 && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              You will be redirected to Paddle to complete your payment securely.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
     </SettingsLayout>
   );

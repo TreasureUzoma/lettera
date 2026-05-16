@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { cn } from "@workspace/ui/lib/utils";
 import Link from "next/link";
 import {
@@ -59,6 +60,8 @@ export function AuthForm({ mode, className, token }: AuthProps) {
     useForgotPassword();
   const { mutate: resetPassMutate, isPending: resetPassPending } =
     useResetPassowrd();
+
+  const [loadingProvider, setLoadingProvider] = React.useState<"github" | "google" | null>(null);
 
   const isPending =
     loginPending || signupPending || forgotPending || resetPassPending;
@@ -177,20 +180,26 @@ export function AuthForm({ mode, className, token }: AuthProps) {
                     <Button
                       variant="outline"
                       type="button"
-                      disabled={oauthPending}
-                      onClick={() => ouathMutate("github")}
+                      disabled={loadingProvider !== null}
+                      onClick={() => {
+                        setLoadingProvider("github");
+                        ouathMutate("github");
+                      }}
                     >
                       <GithubLogo />
-                      {oauthPending ? <Spinner /> : "Continue with Github"}
+                      {loadingProvider === "github" ? <Spinner /> : "Continue with Github"}
                     </Button>
                     <Button
                       variant="outline"
                       type="button"
-                      disabled={oauthPending}
-                      onClick={() => ouathMutate("google")}
+                      disabled={loadingProvider !== null}
+                      onClick={() => {
+                        setLoadingProvider("google");
+                        ouathMutate("google");
+                      }}
                     >
                       <GoogleLogo />
-                      {oauthPending ? <Spinner /> : "Continue with Google"}
+                      {loadingProvider === "google" ? <Spinner /> : "Continue with Google"}
                     </Button>
                   </Field>
 

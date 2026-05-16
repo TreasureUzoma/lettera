@@ -52,7 +52,7 @@ export function SettingsLayout({ children }: SettingsLayoutProps) {
                 "w-full justify-start gap-2",
                 pathname === item.href
                   ? "bg-muted hover:bg-muted"
-                  : "hover:bg-transparent hover:underline"
+                  : "hover:bg-transparent"
               )}
               asChild
             >

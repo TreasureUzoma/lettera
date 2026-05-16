@@ -34,10 +34,11 @@ import {
 import type { Context } from "hono";
 import type { ServiceResponse } from "@workspace/types";
 import { validationErrorResponse } from "@/utils/validation-error-response";
-import type { AuthType } from "@/types";
+import type { AuthType, AppBindings } from "@/types";
 import { routeStatus } from "@/lib/utils";
+import { withAuth } from "@/middlewares/session";
 
-const authRoute = new Hono();
+const authRoute = new Hono<AppBindings>();
 
 const handleAuth = async (
   c: Context,
@@ -273,6 +274,7 @@ authRoute.post(
   }
 );
 
+authRoute.use("*", withAuth);
 authRoute.post(
   "/change-password",
   zValidator("json", changePasswordSchema, (result, c) => {
@@ -291,7 +293,6 @@ authRoute.post(
 
 authRoute.get("/sessions", async (c) => {
   const user = c.get("user") as AuthType;
-  if (!user) return c.json({ success: false, message: "Unauthorized" }, 401);
 
   const serviceData = await getActiveSessions(user.id);
   return c.json(serviceData, routeStatus(serviceData));
@@ -299,7 +300,6 @@ authRoute.get("/sessions", async (c) => {
 
 authRoute.delete("/sessions/:id", async (c) => {
   const user = c.get("user") as AuthType;
-  if (!user) return c.json({ success: false, message: "Unauthorized" }, 401);
 
   const sessionId = c.req.param("id");
   const serviceData = await revokeSession(sessionId, user.id);

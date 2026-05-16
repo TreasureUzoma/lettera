@@ -45,9 +45,17 @@ export default function BillingSettingsPage() {
                     : "Billed monthly"}
                 </p>
               </div>
-              {currentPlan.price !== 0 && (
-                <Button variant="outline">Manage Subscription</Button>
-              )}
+              <div className="flex gap-2">
+                {currentPlan.price !== 0 && (
+                  <Button variant="outline">Manage Subscription</Button>
+                )}
+                <Button
+                  variant="outline"
+                  asChild
+                >
+                  <a href="/settings/billing/invoices">View Invoices</a>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

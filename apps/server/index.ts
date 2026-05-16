@@ -7,6 +7,7 @@ import type { Context } from "hono";
 import type { AuthType } from "./types";
 import projectsRoute from "./routes/api/v1/projects";
 import subscriptionRoutes from "./routes/api/v1/subscriptions";
+import subscriptionsPaddleRoute from "./routes/api/v1/subscriptions-paddle";
 import unsubscribeRoutes from "./routes/api/v1/unsubscribe";
 import externalProjectRoutes from "./routes/api/v1/external/projects";
 import profileRoutes from "./routes/api/v1/profiles";
@@ -86,6 +87,12 @@ v1.route("/projects", projectsRoute.use(rateLimiter(60 * 60 * 1000, 70)));
 v1.route(
   "/subscribers",
   subscriptionRoutes.use(rateLimiter(60 * 60 * 1000, 70))
+);
+
+// paddle subscriptions, 50 req per hour
+v1.route(
+  "/subscriptions",
+  subscriptionsPaddleRoute.use(rateLimiter(60 * 60 * 1000, 50))
 );
 
 // profile, 70 req per hour

@@ -26,6 +26,9 @@ import { cn } from "@workspace/ui/lib/utils";
 import { useGetProfile } from "@/hooks/use-auth";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { useSelectedLayoutSegments } from "next/navigation";
+import api from "@workspace/axios";
+import { toast } from "sonner";
+import {useRouter} from "next/navigation";
 
 interface NavItem {
   label: string;
@@ -36,6 +39,7 @@ interface NavItem {
 
 export default function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const segments = useSelectedLayoutSegments();
   const { data: profileData, isLoading: profileLoading } = useGetProfile();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
@@ -233,14 +237,24 @@ export default function AppSidebar() {
                       Settings
                     </Link>
                     <Separator className="my-1" />
-                    <Link
-                      href="/api/auth/logout"
+                    <p
+                     
                       className="flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-destructive/10 transition-colors text-destructive"
-                      onClick={() => setIsUserMenuOpen(false)}
+                      onClick={async () => {
+                        try {
+                        await api.post("/auth/logout")
+                        toast.success("Signout Successful")
+                        router.push("/login")
+                        }
+                        catch (error) {
+                          toast.error(error instanceof Error ? error.message : "Failed to Logout")
+                        }
+                        setIsUserMenuOpen(false)
+                      }}
                     >
                       <LogOut className="w-4 h-4" />
                       Logout
-                    </Link>
+                    </p>
                   </motion.div>
                 )}
               </AnimatePresence>
