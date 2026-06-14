@@ -38,6 +38,7 @@ import { getAuthButtonLabel } from "../utils/labels";
 import { ErrorParagraph } from "@workspace/ui/components/error-message";
 import { Spinner } from "@workspace/ui/components/spinner";
 import { descriptions, titles } from "../utils/data";
+import { Eye, EyeOff } from "lucide-react";
 
 export interface AuthProps {
   mode:
@@ -61,7 +62,11 @@ export function AuthForm({ mode, className, token }: AuthProps) {
   const { mutate: resetPassMutate, isPending: resetPassPending } =
     useResetPassowrd();
 
-  const [loadingProvider, setLoadingProvider] = React.useState<"github" | "google" | null>(null);
+  const [loadingProvider, setLoadingProvider] = React.useState<
+    "github" | "google" | null
+  >(null);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const isPending =
     loginPending || signupPending || forgotPending || resetPassPending;
@@ -100,7 +105,7 @@ export function AuthForm({ mode, className, token }: AuthProps) {
 
   const handleBlur = async (
     e: React.FocusEvent<HTMLInputElement>,
-    fieldName: keyof BaseFormValues
+    fieldName: keyof BaseFormValues,
   ) => {
     if (!schema) return;
     const value = e.target.value;
@@ -187,7 +192,11 @@ export function AuthForm({ mode, className, token }: AuthProps) {
                       }}
                     >
                       <GithubLogo />
-                      {loadingProvider === "github" ? <Spinner /> : "Continue with Github"}
+                      {loadingProvider === "github" ? (
+                        <Spinner />
+                      ) : (
+                        "Continue with Github"
+                      )}
                     </Button>
                     <Button
                       variant="outline"
@@ -199,7 +208,11 @@ export function AuthForm({ mode, className, token }: AuthProps) {
                       }}
                     >
                       <GoogleLogo />
-                      {loadingProvider === "google" ? <Spinner /> : "Continue with Google"}
+                      {loadingProvider === "google" ? (
+                        <Spinner />
+                      ) : (
+                        "Continue with Google"
+                      )}
                     </Button>
                   </Field>
 
@@ -260,13 +273,30 @@ export function AuthForm({ mode, className, token }: AuthProps) {
                           </Link>
                         )}
                       </div>
-                      <Input
-                        id="password"
-                        type="password"
-                        {...register("password")}
-                        onBlur={(e) => handleBlur(e, "password")}
-                        required
-                      />
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          {...register("password")}
+                          onBlur={(e) => handleBlur(e, "password")}
+                          required
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                       {errors.password && (
                         <ErrorParagraph>
                           {errors.password.message}
@@ -280,13 +310,34 @@ export function AuthForm({ mode, className, token }: AuthProps) {
                       <FieldLabel htmlFor="confirm-password">
                         Confirm password
                       </FieldLabel>
-                      <Input
-                        id="confirm-password"
-                        type="password"
-                        {...register("confirmPassword")}
-                        onBlur={(e) => handleBlur(e, "confirmPassword")}
-                        required
-                      />
+                      <div className="relative">
+                        <Input
+                          id="confirm-password"
+                          type={showConfirmPassword ? "text" : "password"}
+                          {...register("confirmPassword")}
+                          onBlur={(e) => handleBlur(e, "confirmPassword")}
+                          required
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={
+                            showConfirmPassword
+                              ? "Hide password"
+                              : "Show password"
+                          }
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                       {errors.confirmPassword && (
                         <ErrorParagraph>
                           {errors.confirmPassword.message}

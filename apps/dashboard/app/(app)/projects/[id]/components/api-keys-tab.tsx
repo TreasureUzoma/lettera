@@ -14,7 +14,7 @@ import {
 } from "@workspace/ui/components/card";
 import { CopyButton } from "@workspace/ui/components/copy-button";
 import { Input } from "@workspace/ui/components/input";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -44,6 +44,7 @@ export function ApiKeysTab({ projectId }: { projectId: string }) {
   const { mutate: deleteApiKey, isPending: isDeleting } =
     useDeleteProjectApiKey(projectId);
   const [newKey, setNewKey] = useState<string | null>(null);
+  const [showKey, setShowKey] = useState(false);
 
   const handleCreate = () => {
     createApiKey(undefined, {
@@ -137,12 +138,26 @@ export function ApiKeysTab({ projectId }: { projectId: string }) {
             <div className="space-y-2">
               <Label>Secret Key</Label>
               <div className="flex items-center gap-2">
-                <Input
-                  readOnly
-                  value={newKey || ""}
-                  type="password"
-                  className="font-mono"
-                />
+                <div className="relative flex-1">
+                  <Input
+                    readOnly
+                    value={newKey || ""}
+                    type={showKey ? "text" : "password"}
+                    className="font-mono pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showKey ? "Hide key" : "Show key"}
+                  >
+                    {showKey ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
                 <CopyButton
                   content={newKey || ""}
                   onCopy={() => toast.success("Secret key copied")}
@@ -151,7 +166,14 @@ export function ApiKeysTab({ projectId }: { projectId: string }) {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={() => setNewKey(null)}>Done</Button>
+            <Button
+              onClick={() => {
+                setNewKey(null);
+                setShowKey(false);
+              }}
+            >
+              Done
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

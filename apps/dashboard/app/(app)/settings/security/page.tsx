@@ -26,14 +26,26 @@ import {
   useActiveSessions,
   useRevokeSession,
 } from "@/hooks/use-security";
-import { Loader2, Monitor, Smartphone, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  Monitor,
+  Smartphone,
+  Trash2,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
 
-export default function SecuritySettingsPage() {
+export default function SecuritySettingsPage(): React.JSX.Element {
   const { mutate: changePassword, isPending: isChangingPassword } =
     useChangePassword();
   const { data: sessions, isLoading: isLoadingSessions } = useActiveSessions();
   const { mutate: revokeSession } = useRevokeSession();
+
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(changePasswordSchema),
@@ -80,11 +92,32 @@ export default function SecuritySettingsPage() {
                     <FormItem>
                       <FormLabel>Current Password</FormLabel>
                       <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          {...field}
-                        />
+                        <div className="relative">
+                          <Input
+                            type={showCurrentPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            {...field}
+                            className="pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowCurrentPassword(!showCurrentPassword)
+                            }
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label={
+                              showCurrentPassword
+                                ? "Hide password"
+                                : "Show password"
+                            }
+                          >
+                            {showCurrentPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -98,11 +131,32 @@ export default function SecuritySettingsPage() {
                       <FormItem>
                         <FormLabel>New Password</FormLabel>
                         <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <Input
+                              type={showNewPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                              {...field}
+                              className="pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowNewPassword(!showNewPassword)
+                              }
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              aria-label={
+                                showNewPassword
+                                  ? "Hide password"
+                                  : "Show password"
+                              }
+                            >
+                              {showNewPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -115,11 +169,32 @@ export default function SecuritySettingsPage() {
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            {...field}
-                          />
+                          <div className="relative">
+                            <Input
+                              type={showConfirmPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                              {...field}
+                              className="pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowConfirmPassword(!showConfirmPassword)
+                              }
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              aria-label={
+                                showConfirmPassword
+                                  ? "Hide password"
+                                  : "Show password"
+                              }
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -176,9 +251,12 @@ export default function SecuritySettingsPage() {
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Last active{" "}
-                        {formatDistanceToNow(new Date(session.createdAt), {
-                          addSuffix: true,
-                        })}
+                        {session.createdAt &&
+                        !isNaN(new Date(session.createdAt).getTime())
+                          ? formatDistanceToNow(new Date(session.createdAt), {
+                              addSuffix: true,
+                            })
+                          : "recently"}
                       </p>
                     </div>
                   </div>
