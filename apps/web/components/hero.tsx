@@ -3,23 +3,31 @@ import { ArrowRight } from "lucide-react";
 export const Hero = () => {
   return (
     <section className="p-4 md:p-5 flex items-center justify-center min-h-screen">
-      <div className="max-w-3xl space-y-5">
-        <h1 className="text-4xl md:text-5xl font-bold text-header">
-          the simplest newsletter tool you’ll ever need
-        </h1>
-        <p className="text-muted-foreground">
-          send newsletters, grow your audience, no distractions, privacy first
-          and built for developers.
-        </p>
-        <div className="space-x-6">
-          <a href="/login" className="underline hover:text-muted-foreground">
-            <span>
-              get started for free <ArrowRight size={16} className="inline" />
-            </span>
+      <div className="max-w-3xl space-y-8">
+        <div className="space-y-4">
+          <h1 className="text-5xl md:text-6xl font-bold text-foreground leading-tight">
+            build, send, and manage newsletters with an API you'll actually
+            enjoy
+          </h1>
+          <p className="text-lg text-muted-foreground leading-relaxed">
+            lettera is the newsletter platform built for developers. send emails
+            from your code. manage subscribers without leaving your terminal.
+            scale without fighting the tool.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <a
+            href="/login"
+            className="px-6 py-3 bg-foreground text-background rounded-lg font-semibold hover:opacity-90 transition-opacity inline-flex items-center justify-center gap-2"
+          >
+            start for free <ArrowRight size={16} />
           </a>
-          <a href="/docs" className="underline hover:text-muted-foreground">
-            read <span className="hidden md:inline">documentations</span>
-            <span className="md:hidden">docs</span>
+          <a
+            href="/docs"
+            className="px-6 py-3 border border-border rounded-lg font-semibold hover:bg-muted transition-colors inline-flex items-center justify-center"
+          >
+            read docs
           </a>
         </div>
       </div>

@@ -1,12 +1,16 @@
 import { Hero } from "@/components/hero";
+import { ProductShowcase } from "@/components/product-showcase";
+import { CodeExample } from "@/components/code-example";
+import { Comparison } from "@/components/comparison";
 import { Pricings } from "@/components/pricings";
-import { WhyUs } from "@/components/why-us";
 
 export default function HomePage() {
   return (
-    <div className="space-y-12">
+    <div className="space-y-20">
       <Hero />
-      <WhyUs />
+      <ProductShowcase />
+      <CodeExample />
+      <Comparison />
       <Pricings />
     </div>
   );
