@@ -13,6 +13,30 @@ export function useProjectMembers(projectId: string) {
   });
 }
 
+export function useTransferOwnership(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (newOwnerUserId: string) => {
+      const res = await api.post(`/projects/${projectId}/transfer-ownership`, {
+        newOwnerUserId,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["project-members", projectId],
+      });
+      toast.success("Project ownership transferred");
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || "Failed to transfer ownership"
+      );
+    },
+  });
+}
+
 export function useUpdateProjectMember(projectId: string) {
   const queryClient = useQueryClient();
 

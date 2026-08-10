@@ -4,6 +4,30 @@ import { db } from "@workspace/db";
 import { emails } from "@workspace/db/schema";
 import type { ServiceResponse } from "@workspace/types";
 import { and, desc, eq } from "drizzle-orm";
+import { start } from "workflow/api";
+import { emailCampaignWorkflow } from "./workflows/email-campaign";
+import { sendScheduledEmail } from "./workflows/steps";
+
+/**
+ * Sends immediately, or schedules a durable workflow to send later,
+ * depending on whether `scheduledFor` is in the future.
+ */
+const triggerSendIfPublished = async (
+  emailId: string,
+  status: "published" | "draft" | undefined,
+  scheduledFor: Date | undefined
+) => {
+  if (status !== "published") return;
+
+  const sendAt = scheduledFor ?? new Date();
+  if (sendAt.getTime() > Date.now()) {
+    await start(emailCampaignWorkflow, [
+      { emailId, scheduledTime: sendAt.toISOString() },
+    ]);
+  } else {
+    await sendScheduledEmail(emailId);
+  }
+};
 
 const encryptionKey = envConfig.ENCRYPTION_KEY!;
 
@@ -89,7 +113,9 @@ export const getEmail = async (
 export const createEmail = async (
   projectId: string,
   subject: string,
-  body: string
+  body: string,
+  status: "published" | "draft" = "draft",
+  sentAt?: Date
 ): Promise<ServiceResponse> => {
   try {
     const encryptedBody = await encryptDataSubtle(body, encryptionKey);
@@ -100,7 +126,8 @@ export const createEmail = async (
         projectId,
         subject,
         body: encryptedBody,
-        status: "draft", // Default to draft
+        status,
+        ...(sentAt ? { sentAt } : {}),
       })
       .returning();
 
@@ -108,12 +135,19 @@ export const createEmail = async (
       throw new Error("Failed to create email");
     }
 
+    await triggerSendIfPublished(newEmail.id, newEmail.status, sentAt);
+
     // Return with decrypted body (which is just the input body)
     newEmail.body = body;
 
     return {
       success: true,
-      message: "Email created successfully",
+      message:
+        status === "published"
+          ? sentAt && sentAt.getTime() > Date.now()
+            ? "Email scheduled successfully"
+            : "Email sent successfully"
+          : "Email created successfully",
       data: newEmail,
     };
   } catch (err) {
@@ -168,7 +202,8 @@ export const updateEmail = async (
   emailId: string,
   subject?: string,
   body?: string,
-  status?: "published" | "draft"
+  status?: "published" | "draft",
+  sentAt?: Date
 ): Promise<ServiceResponse> => {
   try {
     const updateValues: Record<string, any> = {};
@@ -177,6 +212,7 @@ export const updateEmail = async (
       updateValues.body = await encryptDataSubtle(body, encryptionKey);
     }
     if (status !== undefined) updateValues.status = status;
+    if (sentAt !== undefined) updateValues.sentAt = sentAt;
 
     if (Object.keys(updateValues).length === 0) {
       return {
@@ -200,6 +236,10 @@ export const updateEmail = async (
       };
     }
 
+    if (status !== undefined) {
+      await triggerSendIfPublished(updatedEmail.id, status, sentAt);
+    }
+
     // Decrypt content (or return what was passed if body updated)
     if (body) {
       updatedEmail.body = body;
@@ -217,7 +257,12 @@ export const updateEmail = async (
 
     return {
       success: true,
-      message: "Email updated successfully",
+      message:
+        status === "published"
+          ? sentAt && sentAt.getTime() > Date.now()
+            ? "Email scheduled successfully"
+            : "Email sent successfully"
+          : "Email updated successfully",
       data: updatedEmail,
     };
   } catch (err) {

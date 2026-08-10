@@ -6,11 +6,12 @@
   "devDependencies": {
     "@types/bun": "latest",
     "bun-types": "^1.3.5",
-    "cross-env": "^10.1.0"
+    "cross-env": "^10.1.0",
+    "dotenv-cli": "^10.0.0"
   },
   "scripts": {
-    "dev": "cross-env PORT=3005 nitro dev",
-    "build": "nitro build"
+    "dev": "dotenv -e ../../.env -- cross-env PORT=3005 nitro dev",
+    "build": "dotenv -e ../../.env -- nitro build"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -25,14 +26,16 @@
     "@workspace/db": "workspace:*",
     "@workspace/types": "workspace:*",
     "@workspace/validations": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "csv-parse": "^7.0.2",
     "drizzle-kit": "^0.31.5",
     "drizzle-orm": "^0.44.7",
     "googleapis": "^164.1.0",
     "hono": "^4.10.3",
-    "nitro": "3.0.1-alpha.1",
+    "nitro": "3.0.260610-beta",
     "redis": "^5.9.0",
     "rollup": "^4.54.0",
-    "workflow": "4.0.1-beta.40",
+    "workflow": "^4.8.1",
     "zod": "^3.25.76"
   }
 }

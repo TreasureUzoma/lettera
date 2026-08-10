@@ -1,22 +1,26 @@
 import { sendNewsletterEmail, sendBulkNewsletterEmails } from "./ses";
+import { applyBranding } from "./branding";
 
 export const sendEmailNewsletter = async (
   projectSlug: string,
   recipientEmails: string[],
   subject: string,
   html: string,
-  replyTo?: string
+  replyTo?: string,
+  removeBranding = false
 ) => {
   if (recipientEmails.length === 0) {
     throw new Error("No recipient emails provided");
   }
 
-  if (recipientEmails.length === 1) {
+  const brandedHtml = applyBranding(html, removeBranding);
+
+  if (recipientEmails.length === 1 && recipientEmails[0]) {
     const result = await sendNewsletterEmail({
       projectSlug,
       recipientEmail: recipientEmails[0],
       subject,
-      html,
+      html: brandedHtml,
       replyTo,
     });
 
@@ -32,7 +36,7 @@ export const sendEmailNewsletter = async (
     projectSlug,
     recipientEmails,
     subject,
-    html,
+    html: brandedHtml,
     replyTo,
   });
 

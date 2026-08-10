@@ -3,6 +3,7 @@ import { subscribers } from "@workspace/db/schema";
 import type { ServiceResponse } from "@workspace/types";
 import { and, count, desc, eq } from "drizzle-orm";
 import { paginate } from "@/utils/pagination";
+import { parse } from "csv-parse/sync";
 
 export const getSubscribers = async (
   projectId: string,
@@ -90,6 +91,131 @@ export const createSubscriber = async (
       data: null,
     };
   }
+};
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_IMPORT_ROWS = 10_000;
+
+export const importSubscribersFromCsv = async (
+  projectId: string,
+  csvContent: string
+): Promise<ServiceResponse> => {
+  try {
+    let rows: Record<string, string>[];
+    try {
+      rows = parse(csvContent, {
+        columns: (header: string[]) =>
+          header.map((h) => h.trim().toLowerCase()),
+        skip_empty_lines: true,
+        trim: true,
+      });
+    } catch (parseErr) {
+      return {
+        success: false,
+        message:
+          parseErr instanceof Error
+            ? `Failed to parse CSV: ${parseErr.message}`
+            : "Failed to parse CSV.",
+        data: null,
+      };
+    }
+
+    if (rows.length > MAX_IMPORT_ROWS) {
+      return {
+        success: false,
+        message: `CSV has too many rows (${rows.length}). Max ${MAX_IMPORT_ROWS} per import.`,
+        data: null,
+      };
+    }
+
+    const seen = new Set<string>();
+    const validRows: { email: string; name: string | null }[] = [];
+    let invalidCount = 0;
+    let duplicatesInFile = 0;
+
+    for (const row of rows) {
+      const email = row.email?.trim().toLowerCase();
+      const name = row.name?.trim() || null;
+
+      if (!email || !EMAIL_REGEX.test(email)) {
+        invalidCount++;
+        continue;
+      }
+
+      if (seen.has(email)) {
+        duplicatesInFile++;
+        continue;
+      }
+
+      seen.add(email);
+      validRows.push({ email, name });
+    }
+
+    if (validRows.length === 0) {
+      return {
+        success: false,
+        message:
+          "No valid subscribers found in CSV. Make sure it has an 'email' column.",
+        data: null,
+      };
+    }
+
+    const inserted = await db
+      .insert(subscribers)
+      .values(
+        validRows.map((row) => ({
+          projectId,
+          email: row.email,
+          name: row.name,
+          status: "subscribed" as const,
+        }))
+      )
+      .onConflictDoNothing({
+        target: [subscribers.projectId, subscribers.email],
+      })
+      .returning();
+
+    return {
+      success: true,
+      message: `Imported ${inserted.length} subscriber${inserted.length === 1 ? "" : "s"}.`,
+      data: {
+        imported: inserted.length,
+        skippedDuplicates:
+          validRows.length - inserted.length + duplicatesInFile,
+        invalidRows: invalidCount,
+        totalRows: rows.length,
+      },
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message:
+        err instanceof Error
+          ? err.message
+          : "Something went wrong importing subscribers",
+      data: null,
+    };
+  }
+};
+
+/**
+ * All actively-subscribed emails for a project, unpaginated — for actual
+ * sends, not UI listing.
+ */
+export const getSubscribedEmails = async (
+  projectId: string
+): Promise<string[]> => {
+  const rows = await db
+    .select({ email: subscribers.email })
+    .from(subscribers)
+    .where(
+      and(
+        eq(subscribers.projectId, projectId),
+        eq(subscribers.status, "subscribed")
+      )
+    );
+
+  return rows.map((r) => r.email);
 };
 
 export const deleteSubscriber = async (

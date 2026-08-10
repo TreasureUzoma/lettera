@@ -8,6 +8,13 @@
       "when": 1765055224134,
       "tag": "0000_careless_naoko",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786335829406,
+      "tag": "0001_add_segments",
+      "breakpoints": true
     }
   ]
 }

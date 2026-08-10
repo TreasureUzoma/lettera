@@ -30,7 +30,11 @@ unsubscribeRoutes.post(
     }
 
     const token = await sign(
-      { projectId: body.projectId, email: body.email, exp: 15 * 60 }, // 15m
+      {
+        projectId: body.projectId,
+        email: body.email,
+        exp: Math.floor(Date.now() / 1000) + 15 * 60, // 15m from now
+      },
       envConfig.UNSUBSCRIBE_SECRET!
     );
 
@@ -59,7 +63,11 @@ unsubscribeRoutes.get(
   async (c) => {
     const { token } = c.req.valid("param");
 
-    const validToken = await verify(token, envConfig.UNSUBSCRIBE_SECRET || "");
+    const validToken = await verify(
+      token,
+      envConfig.UNSUBSCRIBE_SECRET || "",
+      "HS256"
+    );
 
     if (!validToken) {
       return c.json(

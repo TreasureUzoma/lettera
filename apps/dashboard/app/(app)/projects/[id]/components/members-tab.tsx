@@ -3,6 +3,7 @@
 import {
   useProjectMembers,
   useUpdateProjectMember,
+  useTransferOwnership,
 } from "@/hooks/use-project-members";
 import { useGetProfile } from "@/hooks/use-auth";
 import {
@@ -24,12 +25,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui/components/select";
-import { Loader2 } from "lucide-react";
+import { Button } from "@workspace/ui/components/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@workspace/ui/components/alert-dialog";
+import { Crown, Loader2 } from "lucide-react";
 
 export function MembersTab({ projectId }: { projectId: string }) {
   const { data: members, isLoading } = useProjectMembers(projectId);
   const { mutate: updateRole, isPending } = useUpdateProjectMember(projectId);
+  const { mutate: transferOwnership, isPending: isTransferring } =
+    useTransferOwnership(projectId);
   const { data: user } = useGetProfile();
+
+  const currentMember = members?.find((m: any) => m.user.email === user?.email);
+  const isCurrentUserOwner = currentMember?.role === "owner";
 
   if (isLoading) {
     return (
@@ -67,22 +85,61 @@ export function MembersTab({ projectId }: { projectId: string }) {
                 </p>
               </div>
             </div>
-            <Select
-              defaultValue={member.role}
-              onValueChange={(value) =>
-                updateRole({ userId: member.userId, role: value })
-              }
-              disabled={isPending || member.email === user?.email}
-            >
-              <SelectTrigger className="w-[110px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="owner">Owner</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="member">Member</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              {isCurrentUserOwner && member.role !== "owner" && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={isTransferring}
+                      title="Transfer ownership"
+                    >
+                      <Crown className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Transfer Ownership</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Make <strong>{member.user.name}</strong> the new
+                        owner of this project? You'll be moved to the Admin
+                        role and lose owner-only permissions (like deleting
+                        the project or transferring ownership again).
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => transferOwnership(member.userId)}
+                      >
+                        Transfer Ownership
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              <Select
+                defaultValue={member.role}
+                onValueChange={(value) =>
+                  updateRole({ userId: member.userId, role: value })
+                }
+                disabled={
+                  isPending ||
+                  member.user.email === user?.email ||
+                  member.role === "owner"
+                }
+              >
+                <SelectTrigger className="w-[110px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         ))}
       </CardContent>

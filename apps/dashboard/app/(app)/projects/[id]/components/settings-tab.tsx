@@ -23,7 +23,7 @@ import {
 } from "@workspace/ui/components/form";
 import { Input } from "@workspace/ui/components/input";
 import { cn } from "@workspace/ui/lib/utils";
-import { Globe, Loader2, Lock, Trash2 } from "lucide-react";
+import { Globe, Loader2, Lock, Sparkles, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import {
   AlertDialog,
@@ -48,6 +48,7 @@ interface SettingsTabProps {
     description: string;
     isPublic: boolean;
     isPrivateAt: string | null;
+    config?: { removeBranding?: boolean } | null;
   };
 }
 
@@ -68,6 +69,10 @@ export function SettingsTab({ project }: SettingsTabProps) {
 
   function onSubmit(values: UpdateProject) {
     updateProject(values);
+  }
+
+  function toggleBranding(removeBranding: boolean) {
+    updateProject({ removeBranding });
   }
 
   return (
@@ -174,6 +179,62 @@ export function SettingsTab({ project }: SettingsTabProps) {
             Save Changes
           </Button>
         </CardFooter>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            Branding
+            <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              <Sparkles className="w-3 h-3" />
+              Pro
+            </span>
+          </CardTitle>
+          <CardDescription>
+            Remove the "Powered by Lettera" footer from your outgoing
+            emails. Requires the project owner to be on a paid plan.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              className={cn(
+                "cursor-pointer border rounded-lg p-4 flex flex-col gap-2 transition-all hover:border-primary/50",
+                !project.config?.removeBranding
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "bg-card"
+              )}
+              onClick={() => toggleBranding(false)}
+            >
+              <div className="font-medium">Show Lettera branding</div>
+              <p className="text-sm text-muted-foreground">
+                Default — a small footer credits Lettera on every email.
+              </p>
+            </div>
+
+            <div
+              className={cn(
+                "cursor-pointer border rounded-lg p-4 flex flex-col gap-2 transition-all hover:border-primary/50",
+                project.config?.removeBranding
+                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                  : "bg-card"
+              )}
+              onClick={() => toggleBranding(true)}
+            >
+              <div className="font-medium">Remove branding</div>
+              <p className="text-sm text-muted-foreground">
+                No footer. Requires a Pro (or higher) plan on this
+                project's owner account.
+              </p>
+            </div>
+          </div>
+          {isUpdating && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Saving...
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       <ProjectIdTab projectId={project.id} />

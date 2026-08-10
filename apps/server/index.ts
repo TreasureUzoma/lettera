@@ -14,6 +14,7 @@ import profileRoutes from "./routes/api/v1/profiles";
 import postRoutes from "./routes/api/v1/posts";
 import dashboardRoute from "./routes/api/v1/dashboard";
 import emailsRoute from "./routes/api/v1/emails";
+import segmentRoutes from "./routes/api/v1/segments";
 import { start } from "workflow/api";
 import { myTestWorkflow } from "./tests/workflow";
 
@@ -39,7 +40,7 @@ app.onError((err, c) => {
       message: err.message || "Internal server error",
       data: null,
     },
-    500
+    500,
   );
 });
 
@@ -64,7 +65,7 @@ v1.route("/unsubscribe", unsubscribeRoutes.use(rateLimiter(60 * 1000, 5)));
 
 v1.route(
   "/external/projects",
-  externalProjectRoutes.use(rateLimiter(60 * 1000, 9))
+  externalProjectRoutes.use(rateLimiter(60 * 1000, 9)),
 );
 
 // Everything else requires authentication
@@ -86,13 +87,13 @@ v1.route("/projects", projectsRoute.use(rateLimiter(60 * 60 * 1000, 70)));
 // subsribers, 70 req per hour
 v1.route(
   "/subscribers",
-  subscriptionRoutes.use(rateLimiter(60 * 60 * 1000, 70))
+  subscriptionRoutes.use(rateLimiter(60 * 60 * 1000, 70)),
 );
 
 // paddle subscriptions, 50 req per hour
 v1.route(
   "/subscriptions",
-  subscriptionsPaddleRoute.use(rateLimiter(60 * 60 * 1000, 50))
+  subscriptionsPaddleRoute.use(rateLimiter(60 * 60 * 1000, 50)),
 );
 
 // profile, 70 req per hour
@@ -106,6 +107,9 @@ v1.route("/emails", emailsRoute.use(rateLimiter(60 * 60 * 1000, 100)));
 
 // dashboard, 70 req per hour
 v1.route("/dashboard", dashboardRoute.use(rateLimiter(60 * 60 * 1000, 70)));
+
+// segments, 70 req per hour
+v1.route("/segments", segmentRoutes.use(rateLimiter(60 * 60 * 1000, 70)));
 
 app.route("/", v1);
 

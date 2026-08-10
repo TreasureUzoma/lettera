@@ -6,11 +6,13 @@
     "lint": "turbo lint",
     "build": "dotenv -e .env -- turbo run build",
     "dev": "dotenv -e .env -- turbo dev",
+    "dev-local": "concurrently --names \"web,server,dashboard,docs\" --colors \"blue,yellow,magenta,cyan\" \"npm run dev --prefix apps/web\" \"npm run dev --prefix apps/server\" \"npm run dev --prefix apps/dashboard\" \"npm run dev --prefix apps/docs\"",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
+    "concurrently": "^9.1.0",
     "dotenv-cli": "^10.0.0",
     "prettier": "^3.6.2",
     "turbo": "^2.5.5",

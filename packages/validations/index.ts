@@ -166,9 +166,24 @@ export const updateProjectSchema = z.object({
     .optional(),
   description: z.string().max(255).optional(),
   isPublic: z.boolean().optional(),
+  removeBranding: z.boolean().optional(),
 });
 
 export type UpdateProject = z.infer<typeof updateProjectSchema>;
+
+export const transferProjectOwnershipSchema = z.object({
+  newOwnerUserId: z.string().uuid("Invalid user ID"),
+});
+
+export type TransferProjectOwnership = z.infer<
+  typeof transferProjectOwnershipSchema
+>;
+
+export const importSubscribersSchema = z.object({
+  csvContent: z.string().min(1, "CSV content is required"),
+});
+
+export type ImportSubscribers = z.infer<typeof importSubscribersSchema>;
 
 export const isValidUUID = z.object({
   id: z.string().uuid("Invalid UUID format"),
@@ -242,6 +257,13 @@ export const createProjectSubscriberSchema = z.object({
 
 export type CreateSubscriber = z.infer<typeof createProjectSubscriberSchema>;
 
+export const createSegmentSchema = z.object({
+  name: z.string().min(1, "Name is required").max(50),
+  description: z.string().max(200).optional().or(z.literal("")),
+});
+
+export type CreateSegment = z.infer<typeof createSegmentSchema>;
+
 export const updateProfileSchema = z
   .object({
     name: z
@@ -288,6 +310,7 @@ export const insertPostSchema = z.object({
   body: z.string().min(2).max(6000),
   status: z.enum(["published", "draft"]),
   projectId: z.string().min(1),
+  sentAt: z.coerce.date().optional(),
 });
 
 export type InsertPost = z.infer<typeof insertPostSchema>;

@@ -51,7 +51,8 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
       try {
         const decoded = (await verify(
           accessToken,
-          envConfig.JWT_ACCESS_SECRET!
+          envConfig.JWT_ACCESS_SECRET!,
+          "HS256"
         )) as { id: string; email: string; name?: string; plan?: string };
 
         // Inject user into context
@@ -75,7 +76,8 @@ export const withAuth: MiddlewareHandler = async (c, next) => {
     try {
       decodedRefresh = (await verify(
         refreshToken,
-        envConfig.JWT_REFRESH_SECRET
+        envConfig.JWT_REFRESH_SECRET,
+        "HS256"
       )) as { id: string };
     } catch {
       return c.json({ message: "Unauthorized", success: false }, 401);

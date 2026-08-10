@@ -9,7 +9,11 @@ import {
   subscribers,
 } from "@workspace/db/schema";
 import type { ProjectRoles, ServiceResponse } from "@workspace/types";
-import type { NewProject, NewProjectInvite } from "@workspace/validations";
+import type {
+  NewProject,
+  NewProjectInvite,
+  UpdateProject,
+} from "@workspace/validations";
 import { projectMembers, users } from "@workspace/db/schema";
 
 import { and, count, desc, eq, isNull } from "drizzle-orm";
@@ -67,9 +71,30 @@ export const createProject = async (
   }
 };
 
+/**
+ * Whether a project is allowed to remove Lettera branding from outgoing
+ * emails. Gated on the project owner's plan (not just whoever happens to be
+ * toggling the setting), and re-checked server-side on every send rather
+ * than trusted from the stored config, in case the owner downgrades later.
+ */
+export const canRemoveBranding = async (projectId: string): Promise<boolean> => {
+  const [owner] = await db
+    .select({ subscriptionType: users.subscriptionType })
+    .from(projectMembers)
+    .innerJoin(users, eq(projectMembers.userId, users.id))
+    .where(
+      and(
+        eq(projectMembers.projectId, projectId),
+        eq(projectMembers.role, "owner")
+      )
+    );
+
+  return !!owner && owner.subscriptionType !== "free";
+};
+
 export const updateProject = async (
   projectId: string,
-  data: Partial<NewProject>
+  data: Partial<UpdateProject>
 ): Promise<ServiceResponse> => {
   try {
     const updateValues: Record<string, any> = {};
@@ -78,6 +103,30 @@ export const updateProject = async (
     if (data.description !== undefined)
       updateValues.description = data.description;
     if (data.isPublic !== undefined) updateValues.isPublic = data.isPublic;
+
+    if (data.removeBranding !== undefined) {
+      if (data.removeBranding) {
+        const allowed = await canRemoveBranding(projectId);
+        if (!allowed) {
+          return {
+            data: null,
+            success: false,
+            message:
+              "Removing Lettera branding is a Pro feature. Upgrade the project owner's plan to enable it.",
+          };
+        }
+      }
+
+      const [existing] = await db
+        .select({ config: projects.config })
+        .from(projects)
+        .where(eq(projects.id, projectId));
+
+      updateValues.config = {
+        ...((existing?.config as Record<string, unknown>) || {}),
+        removeBranding: data.removeBranding,
+      };
+    }
 
     if (Object.keys(updateValues).length === 0) {
       return {
@@ -659,6 +708,98 @@ export const updateProjectMemberRole = async (
         err instanceof Error
           ? err.message
           : "Something went wrong updating the project member's role.",
+    };
+  }
+};
+
+export const transferProjectOwnership = async (
+  projectId: string,
+  currentOwnerId: string,
+  newOwnerUserId: string
+): Promise<ServiceResponse> => {
+  try {
+    if (currentOwnerId === newOwnerUserId) {
+      return {
+        data: null,
+        success: false,
+        message: "You already own this project.",
+      };
+    }
+
+    const [currentOwnerMembership] = await db
+      .select()
+      .from(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.projectId, projectId),
+          eq(projectMembers.userId, currentOwnerId)
+        )
+      );
+
+    if (!currentOwnerMembership || currentOwnerMembership.role !== "owner") {
+      return {
+        data: null,
+        success: false,
+        message: "Only the current owner can transfer ownership.",
+      };
+    }
+
+    const [targetMembership] = await db
+      .select()
+      .from(projectMembers)
+      .where(
+        and(
+          eq(projectMembers.projectId, projectId),
+          eq(projectMembers.userId, newOwnerUserId)
+        )
+      );
+
+    if (!targetMembership) {
+      return {
+        data: null,
+        success: false,
+        message:
+          "The new owner must already be a member of this project. Invite them first.",
+      };
+    }
+
+    // Promote the new owner first so there's never a moment with zero owners
+    // if the second update below were to fail.
+    const [newOwner] = await db
+      .update(projectMembers)
+      .set({ role: "owner" })
+      .where(
+        and(
+          eq(projectMembers.projectId, projectId),
+          eq(projectMembers.userId, newOwnerUserId)
+        )
+      )
+      .returning();
+
+    await db
+      .update(projectMembers)
+      .set({ role: "admin" })
+      .where(
+        and(
+          eq(projectMembers.projectId, projectId),
+          eq(projectMembers.userId, currentOwnerId)
+        )
+      );
+
+    return {
+      data: newOwner,
+      success: true,
+      message:
+        "Project ownership transferred successfully. You are now an admin on this project.",
+    };
+  } catch (err) {
+    return {
+      data: null,
+      success: false,
+      message:
+        err instanceof Error
+          ? err.message
+          : "Something went wrong transferring project ownership.",
     };
   }
 };

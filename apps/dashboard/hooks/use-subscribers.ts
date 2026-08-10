@@ -52,6 +52,40 @@ export function useCreateSubscriber(projectId: string) {
   });
 }
 
+interface ImportSubscribersResult {
+  imported: number;
+  skippedDuplicates: number;
+  invalidRows: number;
+  totalRows: number;
+}
+
+export function useImportSubscribers(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (csvContent: string) => {
+      const res = await api.post<{ data: ImportSubscribersResult }>(
+        `/projects/${projectId}/subscribers/import`,
+        { csvContent }
+      );
+      return res.data.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["subscribers", projectId] });
+      const skipped = (data?.skippedDuplicates ?? 0) + (data?.invalidRows ?? 0);
+      toast.success(
+        `Imported ${data?.imported ?? 0} subscriber${data?.imported === 1 ? "" : "s"}` +
+          (skipped > 0 ? ` (${skipped} skipped)` : "")
+      );
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || "Failed to import subscribers"
+      );
+    },
+  });
+}
+
 export function useDeleteSubscriber(projectId: string) {
   const queryClient = useQueryClient();
 

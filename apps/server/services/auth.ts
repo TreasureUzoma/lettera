@@ -12,6 +12,7 @@ import type {
 } from "@workspace/types";
 
 import { google } from "googleapis";
+import bcrypt from "bcryptjs";
 import { db } from "@workspace/db";
 import { passwordResets, refreshTokens, users } from "@workspace/db/schema";
 import { and, desc, eq, ne } from "drizzle-orm";
@@ -223,7 +224,7 @@ export const login = async (payload: Login) => {
     return { success: false, message: "Invalid email or password", data: null };
   }
 
-  const valid = await Bun.password.verify(password, foundUser.password);
+  const valid = await bcrypt.compare(password, foundUser.password);
   if (!valid) {
     return { success: false, message: "Invalid email or password", data: null };
   }
@@ -254,7 +255,7 @@ export const signup = async (payload: Signup) => {
     };
   }
 
-  const hashedPassword = await Bun.password.hash(password);
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   const [newUser] = await db
     .insert(users)
@@ -322,7 +323,7 @@ export const verifyResetPassword = async (payload: VerifyResetPassword) => {
     return { success: false, message: "Token expired" };
   }
 
-  const hashedPassword = await Bun.password.hash(payload.password);
+  const hashedPassword = await bcrypt.hash(payload.password, 10);
 
   await db
     .update(users)
@@ -379,12 +380,12 @@ export const changePassword = async (
     return { success: false, message: "User not found or invalid" };
   }
 
-  const valid = await Bun.password.verify(data.currentPassword, user.password);
+  const valid = await bcrypt.compare(data.currentPassword, user.password);
   if (!valid) {
     return { success: false, message: "Incorrect current password" };
   }
 
-  const hashedPassword = await Bun.password.hash(data.newPassword);
+  const hashedPassword = await bcrypt.hash(data.newPassword, 10);
 
   await db
     .update(users)

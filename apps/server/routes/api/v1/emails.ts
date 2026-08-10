@@ -1,11 +1,10 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import type { AppBindings, AuthType } from "@/types";
+import type { AppBindings } from "@/types";
 import { sendEmailNewsletter } from "@/services/mail/external";
 import { getProjectOrFail } from "@/utils/project-access";
 import { validationErrorResponse } from "@/utils/validation-error-response";
-import { routeStatus } from "@/lib/utils";
 
 const emailsRoute = new Hono<AppBindings>();
 
@@ -39,12 +38,13 @@ emailsRoute.post(
   ),
   async (c) => {
     try {
-      const auth = c.get("auth") as AuthType;
       const { projectId } = c.req.valid("param");
       const { subject, html, recipientEmails, replyTo } = c.req.valid("json");
 
       // Verify user has access to this project
-      const project = await getProjectOrFail(projectId, auth.userId);
+      const projectOrRes = await getProjectOrFail(c, projectId);
+      if (projectOrRes instanceof Response) return projectOrRes;
+      const project = projectOrRes;
 
       // Send newsletter
       const result = await sendEmailNewsletter(
@@ -61,7 +61,7 @@ emailsRoute.post(
           message: "Newsletter sent successfully",
           data: result,
         },
-        routeStatus.success
+        200
       );
     } catch (error) {
       const message =
@@ -72,7 +72,7 @@ emailsRoute.post(
           success: false,
           message,
         },
-        routeStatus.error
+        500
       );
     }
   }
@@ -105,12 +105,13 @@ emailsRoute.post(
   ),
   async (c) => {
     try {
-      const auth = c.get("auth") as AuthType;
       const { projectId } = c.req.valid("param");
       const { testEmail, subject, html } = c.req.valid("json");
 
       // Verify user has access to this project
-      const project = await getProjectOrFail(projectId, auth.userId);
+      const projectOrRes = await getProjectOrFail(c, projectId);
+      if (projectOrRes instanceof Response) return projectOrRes;
+      const project = projectOrRes;
 
       // Send test email
       const result = await sendEmailNewsletter(
@@ -126,7 +127,7 @@ emailsRoute.post(
           message: "Test email sent successfully",
           data: result,
         },
-        routeStatus.success
+        200
       );
     } catch (error) {
       const message =
@@ -137,7 +138,7 @@ emailsRoute.post(
           success: false,
           message,
         },
-        routeStatus.error
+        500
       );
     }
   }

@@ -50,7 +50,7 @@ await fetch(
         <div className="relative rounded-xl border border-neutral-800 bg-neutral-900 subpixel-antialiased overflow-hidden shadow-sm">
           <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4 py-2.5 text-xs font-mono text-zinc-400">
             <span>javascript</span>
-          </div>{" "}
+          </div>
           <div
             className="overflow-x-auto p-5 font-mono text-sm leading-relaxed [&>pre]:!bg-transparent [&>pre]:p-0"
             dangerouslySetInnerHTML={{ __html: highlightedHtml }}

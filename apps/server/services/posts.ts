@@ -3,9 +3,11 @@ import { eq } from "drizzle-orm";
 import type { InsertPost } from "@workspace/validations";
 import type { ServiceResponse } from "@workspace/types";
 import { emails, projectMembers } from "@workspace/db/schema";
-import { sendEmailNewsletter } from "./mail/external";
 import { decryptDataSubtle, encryptDataSubtle } from "@/lib/encrypt";
 import { envConfig } from "@/config";
+import { start } from "workflow/api";
+import { emailCampaignWorkflow } from "./workflows/email-campaign";
+import { sendScheduledEmail } from "./workflows/steps";
 
 export const createProjectPostDraft = async (
   body: InsertPost
@@ -29,6 +31,20 @@ export const createProjectPostDraft = async (
         success: false,
         message: "Failed to create post draft.",
       };
+    }
+
+    if (newPost.status === "published") {
+      const scheduledTime = body.sentAt ? new Date(body.sentAt) : new Date();
+      if (scheduledTime.getTime() > Date.now()) {
+        await start(emailCampaignWorkflow, [
+          {
+            emailId: newPost.id,
+            scheduledTime: scheduledTime.toISOString(),
+          },
+        ]);
+      } else {
+        await sendScheduledEmail(newPost.id);
+      }
     }
 
     return {
@@ -76,12 +92,11 @@ export const updateProjectPost = async (
     if (body.status === "published") {
       const scheduledTime = body.sentAt ? new Date(body.sentAt) : new Date();
       if (scheduledTime.getTime() > Date.now()) {
-        await start(emailCampaignWorkflow, {
-          emailId: postId,
-          scheduledTime: scheduledTime,
-        });
+        await start(emailCampaignWorkflow, [
+          { emailId: postId, scheduledTime: scheduledTime.toISOString() },
+        ]);
       } else {
-        await sendEmailNewsletter();
+        await sendScheduledEmail(postId);
       }
     }
 

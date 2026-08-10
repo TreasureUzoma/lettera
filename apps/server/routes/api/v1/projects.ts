@@ -12,11 +12,13 @@ import {
   getProjectMembers,
   generateAndCreateProjectApiKey,
   deleteProjectApiKey,
+  transferProjectOwnership,
 } from "@/services/projects";
 import {
   getSubscribers,
   createSubscriber,
   deleteSubscriber,
+  importSubscribersFromCsv,
 } from "@/services/subscribers";
 import {
   getEmails,
@@ -252,6 +254,41 @@ projectsRoute.get(
   }
 );
 
+// transfer project ownership to another existing member
+projectsRoute.post(
+  "/:id/transfer-ownership",
+  zValidator("param", z.object({ id: z.string().min(1) }), (result, c) => {
+    if (!result.success) {
+      return validationErrorResponse(c, result.error);
+    }
+  }),
+  zValidator(
+    "json",
+    z.object({ newOwnerUserId: z.string().uuid("Invalid user ID") }),
+    (result, c) => {
+      if (!result.success) {
+        return validationErrorResponse(c, result.error);
+      }
+    }
+  ),
+  async (c) => {
+    const { id: projectId } = c.req.valid("param");
+    const { newOwnerUserId } = c.req.valid("json");
+    const cookieUser = c.get("user") as AuthType;
+
+    const projectOrRes = await getProjectOrFail(c, projectId, ["owner"]);
+    if (projectOrRes instanceof Response) return projectOrRes;
+    const project = projectOrRes;
+
+    const serviceData = await transferProjectOwnership(
+      project.id,
+      cookieUser.id,
+      newOwnerUserId
+    );
+    return c.json(serviceData, routeStatus(serviceData));
+  }
+);
+
 // get all projects
 projectsRoute.get("/", async (c) => {
   const { page, limit } = c.req.query();
@@ -405,6 +442,39 @@ projectsRoute.post(
   }
 );
 
+// import subscribers via CSV
+projectsRoute.post(
+  "/:id/subscribers/import",
+  zValidator("param", z.object({ id: z.string().min(1) }), (result, c) => {
+    if (!result.success) {
+      return validationErrorResponse(c, result.error);
+    }
+  }),
+  zValidator(
+    "json",
+    z.object({ csvContent: z.string().min(1, "CSV content is required") }),
+    (result, c) => {
+      if (!result.success) {
+        return validationErrorResponse(c, result.error);
+      }
+    }
+  ),
+  async (c) => {
+    const { id: projectId } = c.req.valid("param");
+    const { csvContent } = c.req.valid("json");
+    const projectOrRes = await getProjectOrFail(c, projectId, [
+      "owner",
+      "admin",
+      "editor",
+    ]);
+    if (projectOrRes instanceof Response) return projectOrRes;
+    const project = projectOrRes;
+
+    const serviceData = await importSubscribersFromCsv(project.id, csvContent);
+    return c.json(serviceData, routeStatus(serviceData));
+  }
+);
+
 // delete subscriber
 projectsRoute.delete(
   "/:id/subscribers/:subscriberId",
@@ -481,7 +551,12 @@ projectsRoute.post(
   }),
   zValidator(
     "json",
-    z.object({ subject: z.string().min(1), body: z.string().min(1) }),
+    z.object({
+      subject: z.string().min(1),
+      body: z.string().min(1),
+      status: z.enum(["published", "draft"]).optional(),
+      sentAt: z.coerce.date().optional(),
+    }),
     (result, c) => {
       if (!result.success) {
         return validationErrorResponse(c, result.error);
@@ -490,12 +565,18 @@ projectsRoute.post(
   ),
   async (c) => {
     const { id: projectId } = c.req.valid("param");
-    const { subject, body } = c.req.valid("json");
+    const { subject, body, status, sentAt } = c.req.valid("json");
     const projectOrRes = await getProjectOrFail(c, projectId);
     if (projectOrRes instanceof Response) return projectOrRes;
     const project = projectOrRes;
 
-    const serviceData = await createEmail(project.id, subject, body);
+    const serviceData = await createEmail(
+      project.id,
+      subject,
+      body,
+      status,
+      sentAt
+    );
     return c.json(serviceData, routeStatus(serviceData));
   }
 );
@@ -518,6 +599,7 @@ projectsRoute.patch(
       subject: z.string().min(1).optional(),
       body: z.string().min(1).optional(),
       status: z.enum(["published", "draft"]).optional(),
+      sentAt: z.coerce.date().optional(),
     }),
     (result, c) => {
       if (!result.success) {
@@ -527,7 +609,7 @@ projectsRoute.patch(
   ),
   async (c) => {
     const { id: projectId, emailId } = c.req.valid("param");
-    const { subject, body, status } = c.req.valid("json");
+    const { subject, body, status, sentAt } = c.req.valid("json");
     const projectOrRes = await getProjectOrFail(c, projectId);
     if (projectOrRes instanceof Response) return projectOrRes;
     const project = projectOrRes;
@@ -537,7 +619,8 @@ projectsRoute.patch(
       emailId,
       subject,
       body,
-      status
+      status,
+      sentAt
     );
     return c.json(serviceData, routeStatus(serviceData));
   }

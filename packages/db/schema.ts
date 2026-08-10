@@ -114,9 +114,9 @@ export const projectMembers = pgTable(
     userIdx: index("project_members_user_idx").on(table.userId),
     projectUserUnique: uniqueIndex("project_members_project_user_idx").on(
       table.projectId,
-      table.userId
+      table.userId,
     ),
-  })
+  }),
 );
 
 export const projectApiKeys = pgTable(
@@ -138,7 +138,7 @@ export const projectApiKeys = pgTable(
   (table) => ({
     projectIdx: index("api_keys_project_idx").on(table.projectId),
     publickKeyIdx: index("api_keys_public_key_idx").on(table.publicKey),
-  })
+  }),
 );
 
 export const emails = pgTable(
@@ -157,7 +157,7 @@ export const emails = pgTable(
   (table) => ({
     projectIdx: index("emails_project_idx").on(table.projectId),
     statusIdx: index("emails_status_idx").on(table.status),
-  })
+  }),
 );
 
 export const domains = pgTable(
@@ -184,7 +184,7 @@ export const domains = pgTable(
   (table) => ({
     projectIdx: index("domains_project_idx").on(table.projectId),
     nameIdx: uniqueIndex("domains_name_idx").on(table.name),
-  })
+  }),
 );
 
 export const subscribers = pgTable(
@@ -206,9 +206,9 @@ export const subscribers = pgTable(
     statusIdx: index("subscribers_status_idx").on(table.status),
     projectEmailUnique: uniqueIndex("subscribers_project_email_idx").on(
       table.projectId,
-      table.email
+      table.email,
     ),
-  })
+  }),
 );
 
 export const projectInvites = pgTable(
@@ -233,13 +233,13 @@ export const projectInvites = pgTable(
   (table) => ({
     projectIdx: index("project_invites_project_idx").on(table.projectId),
     invitedToUserIdx: index("project_invites_invited_to_user_idx").on(
-      table.invitedToUserId
+      table.invitedToUserId,
     ),
     projectToUserUnique: uniqueIndex("project_invites_project_to_user_idx").on(
       table.projectId,
-      table.invitedToUserId
+      table.invitedToUserId,
     ),
-  })
+  }),
 );
 
 export const payments = pgTable(
@@ -266,7 +266,7 @@ export const payments = pgTable(
     userIdx: index("payments_user_idx").on(table.userId),
     projectIdx: index("payments_project_idx").on(table.projectId),
     statusIdx: index("payments_status_idx").on(table.status),
-  })
+  }),
 );
 
 export const verification = pgTable("verification", {
@@ -296,7 +296,7 @@ export const refreshTokens = pgTable(
   },
   (table) => ({
     userIdx: index("refresh_tokens_user_idx").on(table.userId),
-  })
+  }),
 );
 
 export const passwordResets = pgTable(
@@ -315,7 +315,50 @@ export const passwordResets = pgTable(
   },
   (table) => ({
     userIdx: index("password_resets_user_idx").on(table.userId),
-  })
+  }),
+);
+
+export const segments = pgTable(
+  "segments",
+  {
+    serial: serial("serial").primaryKey(),
+    id: uuid("id").defaultRandom().notNull().unique(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    criteria: jsonb("criteria").default({}), // stores filtering criteria
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    projectIdx: index("segments_project_idx").on(table.projectId),
+  }),
+);
+
+export const segmentSubscribers = pgTable(
+  "segment_subscribers",
+  {
+    serial: serial("serial").primaryKey(),
+    id: uuid("id").defaultRandom().notNull().unique(),
+    segmentId: uuid("segment_id")
+      .notNull()
+      .references(() => segments.id, { onDelete: "cascade" }),
+    subscriberId: uuid("subscriber_id")
+      .notNull()
+      .references(() => subscribers.id, { onDelete: "cascade" }),
+    addedAt: timestamp("added_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    segmentIdx: index("segment_subscribers_segment_idx").on(table.segmentId),
+    subscriberIdx: index("segment_subscribers_subscriber_idx").on(
+      table.subscriberId,
+    ),
+    segmentSubscriberUnique: uniqueIndex(
+      "segment_subscribers_segment_subscriber_idx",
+    ).on(table.segmentId, table.subscriberId),
+  }),
 );
 
 export const projectInviteRelations = relations(projectInvites, ({ one }) => ({
@@ -356,6 +399,7 @@ export const projectRelations = relations(projects, ({ one, many }) => ({
   apiKeys: many(projectApiKeys),
   members: many(projectMembers),
   invites: many(projectInvites),
+  segments: many(segments),
 }));
 
 export const projectMemberRelations = relations(projectMembers, ({ one }) => ({
@@ -414,3 +458,25 @@ export const paymentRelations = relations(payments, ({ one }) => ({
     references: [projects.id],
   }),
 }));
+
+export const segmentRelations = relations(segments, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [segments.projectId],
+    references: [projects.id],
+  }),
+  subscribers: many(segmentSubscribers),
+}));
+
+export const segmentSubscriberRelations = relations(
+  segmentSubscribers,
+  ({ one }) => ({
+    segment: one(segments, {
+      fields: [segmentSubscribers.segmentId],
+      references: [segments.id],
+    }),
+    subscriber: one(subscribers, {
+      fields: [segmentSubscribers.subscriberId],
+      references: [subscribers.id],
+    }),
+  }),
+);

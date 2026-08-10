@@ -20,6 +20,7 @@ export function ProjectHeader({
     { name: "Posts", href: `/projects/${projectSlug}/posts` },
     { name: "Analytics", href: `/projects/${projectSlug}/analytics` },
     { name: "Subscribers", href: `/projects/${projectSlug}/subscribers` },
+    { name: "Segments", href: `/projects/${projectSlug}/segments` },
     { name: "Settings", href: `/projects/${projectSlug}/settings` },
   ];
 

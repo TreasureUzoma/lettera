@@ -212,7 +212,8 @@ authRoute.post("/logout", async (c) => {
     try {
       const decoded = (await verify(
         refreshToken,
-        envConfig.JWT_REFRESH_SECRET!
+        envConfig.JWT_REFRESH_SECRET!,
+        "HS256"
       )) as { id: string };
       if (decoded.id) await deleteAuthRefreshToken(decoded.id);
     } catch {

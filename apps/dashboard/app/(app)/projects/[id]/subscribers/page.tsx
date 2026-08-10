@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   useSubscribers,
   useCreateSubscriber,
   useDeleteSubscriber,
+  useImportSubscribers,
 } from "@/hooks/use-subscribers";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -52,6 +53,8 @@ import {
   BookOpen,
   Code,
   Zap,
+  Upload,
+  FileText,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -84,7 +87,11 @@ export default function ProjectSubscribersPage() {
     useCreateSubscriber(projectId);
   const { mutate: deleteSubscriber, isPending: isDeleting } =
     useDeleteSubscriber(projectId);
+  const { mutate: importSubscribers, isPending: isImporting } =
+    useImportSubscribers(projectId);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [csvFileName, setCsvFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const subscribers = data?.data || [];
   const meta = data?.meta;
@@ -111,6 +118,25 @@ export default function ProjectSubscribersPage() {
         },
       }
     );
+  };
+
+  const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvFileName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const csvContent = reader.result as string;
+      importSubscribers(csvContent, {
+        onSuccess: () => {
+          setIsDialogOpen(false);
+          setCsvFileName(null);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        },
+      });
+    };
+    reader.readAsText(file);
   };
 
   if (isLoading) {
@@ -146,10 +172,14 @@ export default function ProjectSubscribersPage() {
             </DialogHeader>
 
             <Tabs defaultValue="manual" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="manual" className="gap-2">
                   <UserPlus className="w-4 h-4" />
                   Manual
+                </TabsTrigger>
+                <TabsTrigger value="csv" className="gap-2">
+                  <Upload className="w-4 h-4" />
+                  Import CSV
                 </TabsTrigger>
                 <TabsTrigger value="api" className="gap-2">
                   <Code className="w-4 h-4" />
@@ -203,6 +233,49 @@ export default function ProjectSubscribersPage() {
                     </DialogFooter>
                   </form>
                 </Form>
+              </TabsContent>
+
+              <TabsContent value="csv" className="space-y-4 pt-4">
+                <div className="bg-muted/50 rounded-xl p-6 space-y-4 border border-dashed">
+                  <div className="p-3 bg-background rounded-lg w-fit border shadow-sm">
+                    <FileText className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-base">
+                      Import from CSV
+                    </h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Upload a CSV file with an <code>email</code> column
+                      (and an optional <code>name</code> column). Duplicate
+                      and invalid rows are skipped automatically.
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv,text/csv"
+                      onChange={handleCsvFileChange}
+                      className="hidden"
+                      id="csv-upload"
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      disabled={isImporting}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {isImporting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4" />
+                      )}
+                      {isImporting
+                        ? "Importing..."
+                        : csvFileName || "Choose CSV file"}
+                    </Button>
+                  </div>
+                </div>
               </TabsContent>
 
               <TabsContent value="api" className="space-y-4 pt-4">
