@@ -7,7 +7,18 @@ import { decryptDataSubtle, encryptDataSubtle } from "@/lib/encrypt";
 import { envConfig } from "@/config";
 import { start } from "workflow/api";
 import { emailCampaignWorkflow } from "./workflows/email-campaign";
-import { sendScheduledEmail } from "./workflows/steps";
+
+/**
+ * Always hands the actual send off to the durable workflow, whether it's
+ * scheduled for later or "now" — never sends synchronously in the request
+ * handler. See `services/emails.ts`'s `triggerSendIfPublished` for why.
+ */
+const triggerSendIfPublished = async (emailId: string, sentAt?: Date) => {
+  const scheduledTime = sentAt ?? new Date();
+  await start(emailCampaignWorkflow, [
+    { emailId, scheduledTime: scheduledTime.toISOString() },
+  ]);
+};
 
 export const createProjectPostDraft = async (
   body: InsertPost
@@ -34,17 +45,10 @@ export const createProjectPostDraft = async (
     }
 
     if (newPost.status === "published") {
-      const scheduledTime = body.sentAt ? new Date(body.sentAt) : new Date();
-      if (scheduledTime.getTime() > Date.now()) {
-        await start(emailCampaignWorkflow, [
-          {
-            emailId: newPost.id,
-            scheduledTime: scheduledTime.toISOString(),
-          },
-        ]);
-      } else {
-        await sendScheduledEmail(newPost.id);
-      }
+      await triggerSendIfPublished(
+        newPost.id,
+        body.sentAt ? new Date(body.sentAt) : undefined
+      );
     }
 
     return {
@@ -90,14 +94,10 @@ export const updateProjectPost = async (
     }
 
     if (body.status === "published") {
-      const scheduledTime = body.sentAt ? new Date(body.sentAt) : new Date();
-      if (scheduledTime.getTime() > Date.now()) {
-        await start(emailCampaignWorkflow, [
-          { emailId: postId, scheduledTime: scheduledTime.toISOString() },
-        ]);
-      } else {
-        await sendScheduledEmail(postId);
-      }
+      await triggerSendIfPublished(
+        postId,
+        body.sentAt ? new Date(body.sentAt) : undefined
+      );
     }
 
     if (!updatedPost) {

@@ -6,11 +6,14 @@ import type { ServiceResponse } from "@workspace/types";
 import { and, desc, eq } from "drizzle-orm";
 import { start } from "workflow/api";
 import { emailCampaignWorkflow } from "./workflows/email-campaign";
-import { sendScheduledEmail } from "./workflows/steps";
 
 /**
- * Sends immediately, or schedules a durable workflow to send later,
- * depending on whether `scheduledFor` is in the future.
+ * Always hands the actual send off to the durable workflow, whether it's
+ * scheduled for later or "now" — never sends synchronously in the request
+ * handler. A publish action can fan out to an arbitrarily large subscriber
+ * list, and a serverless function (this API route, if deployed to Vercel or
+ * similar) has a hard execution time limit; the workflow has none, and
+ * `start()` itself returns almost immediately regardless of list size.
  */
 const triggerSendIfPublished = async (
   emailId: string,
@@ -20,13 +23,9 @@ const triggerSendIfPublished = async (
   if (status !== "published") return;
 
   const sendAt = scheduledFor ?? new Date();
-  if (sendAt.getTime() > Date.now()) {
-    await start(emailCampaignWorkflow, [
-      { emailId, scheduledTime: sendAt.toISOString() },
-    ]);
-  } else {
-    await sendScheduledEmail(emailId);
-  }
+  await start(emailCampaignWorkflow, [
+    { emailId, scheduledTime: sendAt.toISOString() },
+  ]);
 };
 
 const encryptionKey = envConfig.ENCRYPTION_KEY!;
@@ -146,7 +145,7 @@ export const createEmail = async (
         status === "published"
           ? sentAt && sentAt.getTime() > Date.now()
             ? "Email scheduled successfully"
-            : "Email sent successfully"
+            : "Email queued for sending"
           : "Email created successfully",
       data: newEmail,
     };
