@@ -53,7 +53,7 @@ export default function NewPostPage(): React.JSX.Element {
           setIsScheduleOpen(false);
           router.push(`/projects/${projectId}/posts`);
         },
-      }
+      },
     );
   };
 
@@ -77,7 +77,7 @@ export default function NewPostPage(): React.JSX.Element {
           toast.success("Post created successfully");
           router.push(`/projects/${projectId}/posts`);
         },
-      }
+      },
     );
   };
 
@@ -152,7 +152,7 @@ export default function NewPostPage(): React.JSX.Element {
               placeholder="Enter an engaging subject line..."
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="text-lg font-medium border-0 px-0 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/50 h-auto"
+              className="text-lg font-medium border-0 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/50 h-auto"
             />
           </div>
 

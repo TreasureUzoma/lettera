@@ -55,7 +55,7 @@ export function ProjectCTA({ project, stats }: ProjectCTAProps) {
     <Card>
       <CardContent>
         <div className="space-y-4">
-          <div className="p-3 w-fit rounded-lg bg-neutral-800">
+          <div className="p-3 w-fit rounded-lg bg-neutral-200 dark:bg-neutral-800">
             <cta.icon className="h-6 w-6 text-emerald-400" />
           </div>
           <div className="space-y-2">
@@ -66,10 +66,7 @@ export function ProjectCTA({ project, stats }: ProjectCTAProps) {
           </div>
         </div>
         <div className="mt-8">
-          <Button
-            className="w-full bg-white text-black hover:bg-neutral-200"
-            asChild
-          >
+          <Button className="w-full" asChild>
             <Link href={cta.href}>
               {cta.buttonText}
               <cta.icon className="ml-2 h-4 w-4" />

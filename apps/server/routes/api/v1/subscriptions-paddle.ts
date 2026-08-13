@@ -4,18 +4,19 @@ import { z } from "zod";
 import type { AppBindings, AuthType } from "@/types";
 import {
   createCheckoutSession,
-  handlePaddleWebhook,
   getUserInvoices,
   cancelSubscription,
   getInvoice,
 } from "@/services/paddle";
 import { validationErrorResponse } from "@/utils/validation-error-response";
-import { routeStatus } from "@/lib/utils";
 
 const subscriptionsPaddleRoute = new Hono<AppBindings>();
 
 /**
- * Create checkout session for subscription
+ * Create checkout session for subscription. The Paddle webhook itself lives
+ * at a separate, public route (`routes/api/v1/webhooks/paddle.ts`, mounted
+ * before session auth in index.ts) since Paddle's servers can't carry a
+ * Lettera session cookie.
  */
 subscriptionsPaddleRoute.post(
   "/checkout",
@@ -35,7 +36,7 @@ subscriptionsPaddleRoute.post(
   async (c) => {
     try {
       const user = c.get("user") as AuthType;
-      const { planSlug, successUrl, cancelUrl } = c.req.valid("json");
+      const { planSlug, successUrl } = c.req.valid("json");
 
       if (!user?.id) {
         return c.json(
@@ -47,20 +48,30 @@ subscriptionsPaddleRoute.post(
         );
       }
 
-      // Plan pricing (in dollars)
-      const planPrices: Record<string, number> = {
-        hobby: 0,
-        professional: 9,
-        business: 29,
-        enterprise: 0, // Custom pricing
-      };
+      if (planSlug === "hobby") {
+        return c.json(
+          {
+            success: false,
+            message: "The Hobby plan is free — no checkout needed.",
+          },
+          400
+        );
+      }
+
+      if (planSlug === "enterprise") {
+        return c.json(
+          {
+            success: false,
+            message: "Enterprise is custom-priced — contact sales instead of checking out.",
+          },
+          400
+        );
+      }
 
       const result = await createCheckoutSession({
         userId: user.id,
         planSlug,
-        planPrice: planPrices[planSlug] || 0,
         successUrl,
-        cancelUrl,
       });
 
       if (!result.success) {
@@ -89,40 +100,6 @@ subscriptionsPaddleRoute.post(
     }
   }
 );
-
-/**
- * Webhook endpoint for Paddle events
- */
-subscriptionsPaddleRoute.post("/webhook", async (c) => {
-  try {
-    const body = await c.req.json();
-
-    // Verify webhook signature (implement Paddle's signature verification)
-    // For now, we'll process all webhooks
-    const result = await handlePaddleWebhook(body);
-
-    return c.json(
-      {
-        success: result.success,
-        message: result.message,
-      },
-      result.success ? 200 : 400
-    );
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Webhook processing failed";
-
-    console.error("Webhook error:", message);
-
-    return c.json(
-      {
-        success: false,
-        message,
-      },
-      400
-    );
-  }
-});
 
 /**
  * Get user invoices

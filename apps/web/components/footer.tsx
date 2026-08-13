@@ -22,11 +22,7 @@ const footerSections = [
   },
   {
     title: "developers",
-    links: [
-      { name: "github", url: meta.socials.github },
-      { name: "status", url: "/status" },
-      { name: "changelog", url: "/changelog" },
-    ],
+    links: [{ name: "github", url: meta.socials.github }],
   },
 ];
 

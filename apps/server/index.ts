@@ -8,6 +8,7 @@ import type { AuthType } from "./types";
 import projectsRoute from "./routes/api/v1/projects";
 import subscriptionRoutes from "./routes/api/v1/subscriptions";
 import subscriptionsPaddleRoute from "./routes/api/v1/subscriptions-paddle";
+import paddleWebhookRoute from "./routes/api/v1/webhooks/paddle";
 import unsubscribeRoutes from "./routes/api/v1/unsubscribe";
 import externalProjectRoutes from "./routes/api/v1/external/projects";
 import profileRoutes from "./routes/api/v1/profiles";
@@ -66,6 +67,13 @@ v1.route("/unsubscribe", unsubscribeRoutes.use(rateLimiter(60 * 1000, 5)));
 v1.route(
   "/external/projects",
   externalProjectRoutes.use(rateLimiter(60 * 1000, 9)),
+);
+
+// Paddle webhook — public, verified via Paddle's own signature instead of
+// a session (Paddle's servers can't carry a Lettera session cookie)
+v1.route(
+  "/webhooks/paddle",
+  paddleWebhookRoute.use(rateLimiter(60 * 60 * 1000, 100)),
 );
 
 // Everything else requires authentication

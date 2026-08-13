@@ -1,43 +1,75 @@
-import { Paddle } from "@paddle/paddle-node-sdk";
+import { Paddle, Environment, EventName } from "@paddle/paddle-node-sdk";
+import type {
+  SubscriptionNotification,
+  TransactionNotification,
+} from "@paddle/paddle-node-sdk";
 import { envConfig } from "@/config";
 import { db } from "@workspace/db";
 import { payments, users } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import type { ServiceResponse } from "@workspace/types";
 
-// Initialize Paddle client
-const paddle = new Paddle(envConfig.PADDLE_API_KEY);
+const paddle = new Paddle(envConfig.PADDLE_API_KEY, {
+  environment:
+    envConfig.PADDLE_ENVIRONMENT === "production"
+      ? Environment.production
+      : Environment.sandbox,
+});
+
+/**
+ * Paddle price IDs, keyed by the plan slugs used in the checkout API.
+ * Configure these from your Paddle Dashboard > Catalog > Prices.
+ */
+const PLAN_PRICE_IDS: Partial<Record<string, string>> = {
+  professional: envConfig.PADDLE_PRICE_ID_PROFESSIONAL,
+  business: envConfig.PADDLE_PRICE_ID_BUSINESS,
+};
+
+/**
+ * Maps billing plan slugs (as used in checkout / Paddle price catalog) to
+ * the `users.subscriptionType` enum ("free" | "pro" | "enterprise"), which
+ * is what actually gates features (e.g. `canRemoveBranding` in
+ * `services/projects.ts`). These aren't the same vocabulary — "hobby" and
+ * "enterprise" line up, but "professional" and "business" both collapse to
+ * "pro" since that's all the enum distinguishes today.
+ */
+const PLAN_SLUG_TO_SUBSCRIPTION_TYPE: Record<
+  string,
+  "free" | "pro" | "enterprise"
+> = {
+  hobby: "free",
+  professional: "pro",
+  business: "pro",
+  enterprise: "enterprise",
+};
 
 export interface CreateCheckoutSessionOptions {
   userId: string;
   planSlug: string;
-  planPrice: number;
+  /** Where Paddle sends the customer after a successful payment. */
   successUrl: string;
-  cancelUrl: string;
-}
-
-export interface WebhookPayload {
-  event_id: string;
-  event_type: string;
-  occurred_at: string;
-  data: Record<string, any>;
 }
 
 /**
- * Create a Paddle checkout session
+ * Creates a real Paddle-hosted checkout transaction and returns its URL to
+ * redirect the customer to.
  */
 export const createCheckoutSession = async (
   options: CreateCheckoutSessionOptions
 ): Promise<ServiceResponse> => {
   try {
-    const { userId, planSlug, planPrice, successUrl, cancelUrl } = options;
+    const { userId, planSlug, successUrl } = options;
 
-    // Get user details
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
+    const priceId = PLAN_PRICE_IDS[planSlug];
+    if (!priceId) {
+      return {
+        success: false,
+        message: `No Paddle price configured for plan "${planSlug}". Set PADDLE_PRICE_ID_${planSlug.toUpperCase()} in your environment.`,
+        data: null,
+      };
+    }
 
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) {
       return {
         success: false,
@@ -46,16 +78,26 @@ export const createCheckoutSession = async (
       };
     }
 
-    // For now, return a placeholder checkout URL
-    // In production, you would create an actual Paddle checkout
-    const checkoutUrl = `https://checkout.paddle.com/checkout/create?items[0][price_id]=price_${planSlug}&customer_email=${user.email}`;
+    const transaction = await paddle.transactions.create({
+      items: [{ priceId, quantity: 1 }],
+      customData: { userId, planSlug },
+      checkout: { url: successUrl },
+    });
+
+    if (!transaction.checkout?.url) {
+      return {
+        success: false,
+        message: "Paddle did not return a checkout URL",
+        data: null,
+      };
+    }
 
     return {
       success: true,
       message: "Checkout session created",
       data: {
-        sessionId: `session_${Date.now()}`,
-        url: checkoutUrl,
+        transactionId: transaction.id,
+        url: transaction.checkout.url,
       },
     };
   } catch (error) {
@@ -72,34 +114,75 @@ export const createCheckoutSession = async (
 };
 
 /**
- * Handle Paddle webhook events
+ * Verifies and processes a Paddle webhook. `rawBody` must be the exact,
+ * unparsed request body text — signature verification is computed over the
+ * raw bytes, so anything that re-serializes JSON (even losslessly) will
+ * fail verification.
  */
 export const handlePaddleWebhook = async (
-  payload: WebhookPayload
+  rawBody: string,
+  signature: string | undefined
 ): Promise<ServiceResponse> => {
+  if (!envConfig.PADDLE_WEBHOOK_SECRET) {
+    console.error(
+      "PADDLE_WEBHOOK_SECRET is not set — refusing to process webhook."
+    );
+    return {
+      success: false,
+      message: "Webhook verification is not configured",
+      data: null,
+    };
+  }
+
+  if (!signature) {
+    return {
+      success: false,
+      message: "Missing Paddle-Signature header",
+      data: null,
+    };
+  }
+
+  let event;
   try {
-    const { event_type, data } = payload;
+    event = await paddle.webhooks.unmarshal(
+      rawBody,
+      envConfig.PADDLE_WEBHOOK_SECRET,
+      signature
+    );
+  } catch (error) {
+    console.warn(
+      "Rejected Paddle webhook with invalid signature:",
+      error instanceof Error ? error.message : error
+    );
+    return {
+      success: false,
+      message: "Invalid webhook signature",
+      data: null,
+    };
+  }
 
-    switch (event_type) {
-      case "transaction.completed":
-        return await handleTransactionCompleted(data);
+  try {
+    switch (event.eventType) {
+      case EventName.TransactionCompleted:
+        return await handleTransactionCompleted(event.data);
 
-      case "transaction.updated":
-        return await handleTransactionUpdated(data);
+      case EventName.TransactionUpdated:
+        return await handleTransactionUpdated(event.data);
 
-      case "subscription.created":
-        return await handleSubscriptionCreated(data);
+      case EventName.SubscriptionCreated:
+      case EventName.SubscriptionActivated:
+        return await handleSubscriptionActivated(event.data);
 
-      case "subscription.updated":
-        return await handleSubscriptionUpdated(data);
+      case EventName.SubscriptionUpdated:
+        return await handleSubscriptionUpdated(event.data);
 
-      case "subscription.canceled":
-        return await handleSubscriptionCanceled(data);
+      case EventName.SubscriptionCanceled:
+        return await handleSubscriptionCanceled(event.data);
 
       default:
         return {
           success: true,
-          message: `Event ${event_type} received but not processed`,
+          message: `Event ${event.eventType} received but not processed`,
           data: null,
         };
     }
@@ -116,234 +199,159 @@ export const handlePaddleWebhook = async (
   }
 };
 
-/**
- * Handle transaction completed event
- */
-const handleTransactionCompleted = async (data: any): Promise<ServiceResponse> => {
-  try {
-    const { id, customer_id, total, currency, status, custom_data } = data;
+const planSlugFromCustomData = (
+  customData: Record<string, any> | null
+): string | undefined => customData?.planSlug;
 
-    if (!custom_data?.userId) {
-      return {
-        success: false,
-        message: "Missing userId in custom data",
-        data: null,
-      };
-    }
+const userIdFromCustomData = (
+  customData: Record<string, any> | null
+): string | undefined => customData?.userId;
 
-    // Store payment record
-    await db.insert(payments).values({
-      userId: custom_data.userId,
-      provider: "paddle",
-      amount: Math.round(total * 100), // Convert to cents
-      currency: currency || "USD",
-      reference: id,
-      status: status === "completed" ? "completed" : "pending",
-      metadata: {
-        customerId: customer_id,
-        planSlug: custom_data.planSlug,
-      },
-    });
+const handleTransactionCompleted = async (
+  data: TransactionNotification
+): Promise<ServiceResponse> => {
+  const userId = userIdFromCustomData(data.customData);
+  if (!userId) {
+    return {
+      success: false,
+      message: "Missing userId in custom data",
+      data: null,
+    };
+  }
 
-    // Update user subscription
-    if (custom_data.planSlug) {
+  const totalMinorUnits = data.details?.totals?.total;
+
+  await db.insert(payments).values({
+    userId,
+    provider: "paddle",
+    // Paddle amounts are already in the currency's smallest unit (e.g.
+    // cents), as a string — no ×100 conversion needed.
+    amount: totalMinorUnits ? parseInt(totalMinorUnits, 10) : 0,
+    currency: data.currencyCode || "USD",
+    reference: data.id,
+    status: data.status === "completed" ? "completed" : "pending",
+    metadata: {
+      customerId: data.customerId,
+      planSlug: planSlugFromCustomData(data.customData),
+    },
+  });
+
+  const planSlug = planSlugFromCustomData(data.customData);
+  if (planSlug) {
+    const subscriptionType = PLAN_SLUG_TO_SUBSCRIPTION_TYPE[planSlug];
+    if (subscriptionType) {
       await db
         .update(users)
-        .set({ subscriptionType: custom_data.planSlug })
-        .where(eq(users.id, custom_data.userId));
+        .set({ subscriptionType })
+        .where(eq(users.id, userId));
     }
-
-    return {
-      success: true,
-      message: "Transaction processed",
-      data: { transactionId: id },
-    };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to process transaction";
-    console.error("Transaction processing error:", errorMessage);
-
-    return {
-      success: false,
-      message: errorMessage,
-      data: null,
-    };
   }
+
+  return {
+    success: true,
+    message: "Transaction processed",
+    data: { transactionId: data.id },
+  };
 };
 
-/**
- * Handle transaction updated event
- */
-const handleTransactionUpdated = async (data: any): Promise<ServiceResponse> => {
-  try {
-    const { id, status, custom_data } = data;
-
-    if (!custom_data?.userId) {
-      return {
-        success: false,
-        message: "Missing userId in custom data",
-        data: null,
-      };
-    }
-
-    // Update payment status
-    const [existingPayment] = await db
-      .select()
-      .from(payments)
-      .where(eq(payments.reference, id));
-
-    if (existingPayment) {
-      await db
-        .update(payments)
-        .set({
-          status: status === "completed" ? "completed" : "pending",
-        })
-        .where(eq(payments.reference, id));
-    }
-
-    return {
-      success: true,
-      message: "Transaction updated",
-      data: { transactionId: id },
-    };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to update transaction";
-    console.error("Transaction update error:", errorMessage);
-
-    return {
-      success: false,
-      message: errorMessage,
-      data: null,
-    };
-  }
-};
-
-/**
- * Handle subscription created event
- */
-const handleSubscriptionCreated = async (
-  data: any
+const handleTransactionUpdated = async (
+  data: TransactionNotification
 ): Promise<ServiceResponse> => {
-  try {
-    const { id, customer_id, custom_data } = data;
+  const [existingPayment] = await db
+    .select()
+    .from(payments)
+    .where(eq(payments.reference, data.id));
 
-    if (!custom_data?.userId) {
-      return {
-        success: false,
-        message: "Missing userId in custom data",
-        data: null,
-      };
-    }
-
-    // Update user with subscription info
+  if (existingPayment) {
     await db
-      .update(users)
-      .set({
-        subscriptionType: custom_data.planSlug || "professional",
-      })
-      .where(eq(users.id, custom_data.userId));
+      .update(payments)
+      .set({ status: data.status === "completed" ? "completed" : "pending" })
+      .where(eq(payments.reference, data.id));
+  }
 
-    return {
-      success: true,
-      message: "Subscription created",
-      data: { subscriptionId: id },
-    };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to create subscription";
-    console.error("Subscription creation error:", errorMessage);
+  return {
+    success: true,
+    message: "Transaction updated",
+    data: { transactionId: data.id },
+  };
+};
 
+const handleSubscriptionActivated = async (
+  data: SubscriptionNotification
+): Promise<ServiceResponse> => {
+  const userId = userIdFromCustomData(data.customData);
+  if (!userId) {
     return {
       success: false,
-      message: errorMessage,
+      message: "Missing userId in custom data",
       data: null,
     };
   }
+
+  const planSlug = planSlugFromCustomData(data.customData) || "professional";
+  const subscriptionType = PLAN_SLUG_TO_SUBSCRIPTION_TYPE[planSlug] ?? "pro";
+
+  await db.update(users).set({ subscriptionType }).where(eq(users.id, userId));
+
+  return {
+    success: true,
+    message: "Subscription activated",
+    data: { subscriptionId: data.id },
+  };
 };
 
-/**
- * Handle subscription updated event
- */
 const handleSubscriptionUpdated = async (
-  data: any
+  data: SubscriptionNotification
 ): Promise<ServiceResponse> => {
-  try {
-    const { id, custom_data, status } = data;
+  const userId = userIdFromCustomData(data.customData);
+  if (!userId) {
+    return {
+      success: false,
+      message: "Missing userId in custom data",
+      data: null,
+    };
+  }
 
-    if (!custom_data?.userId) {
-      return {
-        success: false,
-        message: "Missing userId in custom data",
-        data: null,
-      };
-    }
-
-    // Update subscription status
-    if (status === "active" && custom_data.planSlug) {
+  const planSlug = planSlugFromCustomData(data.customData);
+  if (data.status === "active" && planSlug) {
+    const subscriptionType = PLAN_SLUG_TO_SUBSCRIPTION_TYPE[planSlug];
+    if (subscriptionType) {
       await db
         .update(users)
-        .set({ subscriptionType: custom_data.planSlug })
-        .where(eq(users.id, custom_data.userId));
+        .set({ subscriptionType })
+        .where(eq(users.id, userId));
     }
-
-    return {
-      success: true,
-      message: "Subscription updated",
-      data: { subscriptionId: id },
-    };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to update subscription";
-    console.error("Subscription update error:", errorMessage);
-
-    return {
-      success: false,
-      message: errorMessage,
-      data: null,
-    };
   }
+
+  return {
+    success: true,
+    message: "Subscription updated",
+    data: { subscriptionId: data.id },
+  };
 };
 
-/**
- * Handle subscription canceled event
- */
 const handleSubscriptionCanceled = async (
-  data: any
+  data: SubscriptionNotification
 ): Promise<ServiceResponse> => {
-  try {
-    const { id, custom_data } = data;
-
-    if (!custom_data?.userId) {
-      return {
-        success: false,
-        message: "Missing userId in custom data",
-        data: null,
-      };
-    }
-
-    // Downgrade to free plan
-    await db
-      .update(users)
-      .set({ subscriptionType: "free" })
-      .where(eq(users.id, custom_data.userId));
-
-    return {
-      success: true,
-      message: "Subscription canceled",
-      data: { subscriptionId: id },
-    };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to cancel subscription";
-    console.error("Subscription cancellation error:", errorMessage);
-
+  const userId = userIdFromCustomData(data.customData);
+  if (!userId) {
     return {
       success: false,
-      message: errorMessage,
+      message: "Missing userId in custom data",
       data: null,
     };
   }
+
+  await db
+    .update(users)
+    .set({ subscriptionType: "free" })
+    .where(eq(users.id, userId));
+
+  return {
+    success: true,
+    message: "Subscription canceled",
+    data: { subscriptionId: data.id },
+  };
 };
 
 /**
@@ -353,7 +361,6 @@ export const getInvoice = async (
   transactionId: string
 ): Promise<ServiceResponse> => {
   try {
-    // For now, retrieve from database
     const [payment] = await db
       .select()
       .from(payments)
@@ -429,7 +436,6 @@ export const cancelSubscription = async (
   userId: string
 ): Promise<ServiceResponse> => {
   try {
-    // Downgrade user to free plan
     await db
       .update(users)
       .set({ subscriptionType: "free" })
