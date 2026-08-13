@@ -7,6 +7,11 @@ import type {
   UnsubscribeRequest,
 } from "@workspace/validations";
 import type { ServiceResponse, SubscriberStatus } from "@workspace/types";
+import {
+  assertSubscriberCapacity,
+  syncSubscriberLimitWarnings,
+  SubscriberLimitError,
+} from "./limits";
 
 export const getProjectSubscribers = (
   projectId: string,
@@ -35,6 +40,8 @@ export const getProjectSubscribers = (
 
 export const createProjectSubscriber = async (body: CreateSubscriber) => {
   try {
+    const usage = await assertSubscriberCapacity(body.projectId);
+
     const subscriber = await db
       .insert(subscribers)
       .values({
@@ -44,12 +51,17 @@ export const createProjectSubscriber = async (body: CreateSubscriber) => {
       })
       .returning();
 
+    void syncSubscriberLimitWarnings({ ...usage, count: usage.count + 1 });
+
     return {
       success: true,
       data: subscriber,
       message: "Created subscriber successfully.",
     };
   } catch (err) {
+    if (err instanceof SubscriberLimitError) {
+      return { success: false, data: null, message: err.message };
+    }
     return {
       success: false,
       data: null,

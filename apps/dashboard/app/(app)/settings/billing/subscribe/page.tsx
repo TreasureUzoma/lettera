@@ -213,14 +213,14 @@ export default function SubscribePage(): React.ReactNode {
                   <span className="text-muted-foreground">Amount: </span>
                   <span className="font-medium">${selectedPlan.price}/month</span>
                 </p>
-                {selectedPlan.overage && (
-                  <p className="text-sm">
-                    <span className="text-muted-foreground">Overage: </span>
-                    <span className="font-medium">
-                      ${selectedPlan.overage} per subscriber
-                    </span>
-                  </p>
-                )}
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Subscribers: </span>
+                  <span className="font-medium">
+                    {selectedPlan.subscribers === null
+                      ? "unlimited"
+                      : `up to ${selectedPlan.subscribers.toLocaleString()}`}
+                  </span>
+                </p>
               </div>
             )}
 

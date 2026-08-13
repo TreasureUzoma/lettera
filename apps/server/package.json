@@ -23,6 +23,7 @@
     "@neondatabase/serverless": "^1.0.2",
     "@paddle/paddle-node-sdk": "^3.8.0",
     "@workspace/axios": "workspace:*",
+    "@workspace/constants": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/types": "workspace:*",
     "@workspace/validations": "workspace:*",

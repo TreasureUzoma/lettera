@@ -1,20 +1,15 @@
+export type PlanSlug = "hobby" | "professional" | "business" | "enterprise";
+
 export type Plan = {
   tier: number;
-  slug: string;
+  slug: PlanSlug;
   name: string;
+  /** Included subscriber cap. `null` means unlimited (enterprise only). */
   subscribers: number | null;
   price: number | null;
   priceLabel: string;
-  overage: number | null;
   description: string;
   features: string[];
-};
-
-export type PricingResult = {
-  plan: Plan;
-  totalPrice: number | null;
-  overageCount: number;
-  overagePrice: number;
 };
 
 export const plans: Plan[] = [
@@ -25,7 +20,6 @@ export const plans: Plan[] = [
     subscribers: 100,
     price: 0,
     priceLabel: "free",
-    overage: null,
     description: "perfect for getting started or testing your first newsletter",
     features: ["up to 100 subscribers", "basic analytics", "email support"],
   },
@@ -36,7 +30,6 @@ export const plans: Plan[] = [
     subscribers: 2500,
     price: 9,
     priceLabel: "$9",
-    overage: 0.1,
     description: "for creators growing a serious audience",
     features: [
       "up to 2,500 subscribers",
@@ -54,7 +47,6 @@ export const plans: Plan[] = [
     subscribers: 10000,
     price: 29,
     priceLabel: "$29",
-    overage: 0.08,
     description: "for established newsletters and small teams",
     features: [
       "up to 10,000 subscribers",
@@ -75,7 +67,6 @@ export const plans: Plan[] = [
     subscribers: null,
     price: null,
     priceLabel: "custom",
-    overage: null,
     description: "for large organizations with advanced requirements",
     features: [
       "unlimited subscribers",
@@ -92,3 +83,20 @@ export const plans: Plan[] = [
     ],
   },
 ];
+
+/**
+ * The smallest plan whose subscriber cap covers `count`. Falls back to
+ * enterprise (unlimited) if nothing else fits. Shared by the pricing
+ * calculator on the marketing site and the subscriber-cap enforcement on
+ * the server, so both always agree on where the lines are.
+ */
+export const getPlanForSubscriberCount = (count: number): Plan => {
+  const fitting = plans.find(
+    (plan) => plan.subscribers !== null && count <= plan.subscribers
+  );
+  return fitting ?? plans[plans.length - 1]!;
+};
+
+/** Look up a plan by its slug, falling back to hobby if unrecognized. */
+export const getPlanBySlug = (slug: string | null | undefined): Plan =>
+  plans.find((plan) => plan.slug === slug) ?? plans[0]!;

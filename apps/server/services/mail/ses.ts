@@ -131,6 +131,60 @@ export const sendBulkNewsletterEmails = async (
   };
 };
 
+export interface SendSystemEmailOptions {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+/**
+ * Send a transactional/system email (limit warnings, account notices,
+ * etc.) from `SYSTEM_EMAIL_FROM`, as opposed to `sendNewsletterEmail`,
+ * which sends from a project's own `newsletter@{slug}.{domain}` identity.
+ */
+export const sendSystemEmail = async (
+  options: SendSystemEmailOptions
+): Promise<{ success: boolean; messageId?: string; error?: string }> => {
+  try {
+    const { to, subject, html } = options;
+
+    const command = new SendEmailCommand({
+      Source: envConfig.SYSTEM_EMAIL_FROM,
+      Destination: {
+        ToAddresses: [to],
+      },
+      Message: {
+        Subject: {
+          Data: subject,
+          Charset: "UTF-8",
+        },
+        Body: {
+          Html: {
+            Data: html,
+            Charset: "UTF-8",
+          },
+        },
+      },
+    });
+
+    const response = await sesClient.send(command);
+
+    return {
+      success: true,
+      messageId: response.MessageId,
+    };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    console.error("Failed to send system email:", errorMessage);
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+};
+
 /**
  * Verify email address with AWS SES (for testing)
  */

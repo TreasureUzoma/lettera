@@ -4,6 +4,12 @@ import type { ServiceResponse } from "@workspace/types";
 import { and, count, desc, eq } from "drizzle-orm";
 import { paginate } from "@/utils/pagination";
 import { parse } from "csv-parse/sync";
+import {
+  assertSubscriberCapacity,
+  getProjectSubscriberUsage,
+  syncSubscriberLimitWarnings,
+  SubscriberLimitError,
+} from "./limits";
 
 export const getSubscribers = async (
   projectId: string,
@@ -66,6 +72,8 @@ export const createSubscriber = async (
       };
     }
 
+    const usage = await assertSubscriberCapacity(projectId);
+
     const [newSubscriber] = await db
       .insert(subscribers)
       .values({
@@ -76,12 +84,17 @@ export const createSubscriber = async (
       })
       .returning();
 
+    void syncSubscriberLimitWarnings({ ...usage, count: usage.count + 1 });
+
     return {
       success: true,
       message: "Subscriber created successfully",
       data: newSubscriber,
     };
   } catch (err) {
+    if (err instanceof SubscriberLimitError) {
+      return { success: false, message: err.message, data: null };
+    }
     return {
       success: false,
       message:
@@ -160,10 +173,35 @@ export const importSubscribersFromCsv = async (
       };
     }
 
+    const usage = await getProjectSubscriberUsage(projectId);
+    if (!usage) {
+      return {
+        success: false,
+        message: "Could not determine this project's subscriber limit.",
+        data: null,
+      };
+    }
+
+    const remainingCapacity =
+      usage.cap === null
+        ? validRows.length
+        : Math.max(0, usage.cap - usage.count);
+    const skippedForLimit = Math.max(0, validRows.length - remainingCapacity);
+    const importableRows = validRows.slice(0, remainingCapacity);
+
+    if (importableRows.length === 0) {
+      void syncSubscriberLimitWarnings(usage);
+      return {
+        success: false,
+        message: `${usage.projectName} is already at its ${usage.plan.name} plan limit of ${usage.cap?.toLocaleString()} subscribers. Upgrade to import more.`,
+        data: null,
+      };
+    }
+
     const inserted = await db
       .insert(subscribers)
       .values(
-        validRows.map((row) => ({
+        importableRows.map((row) => ({
           projectId,
           email: row.email,
           name: row.name,
@@ -175,13 +213,24 @@ export const importSubscribersFromCsv = async (
       })
       .returning();
 
+    void syncSubscriberLimitWarnings({
+      ...usage,
+      count: usage.count + inserted.length,
+    });
+
+    const limitNote =
+      skippedForLimit > 0
+        ? ` ${skippedForLimit} row${skippedForLimit === 1 ? "" : "s"} skipped — over your ${usage.plan.name} plan's subscriber limit.`
+        : "";
+
     return {
       success: true,
-      message: `Imported ${inserted.length} subscriber${inserted.length === 1 ? "" : "s"}.`,
+      message: `Imported ${inserted.length} subscriber${inserted.length === 1 ? "" : "s"}.${limitNote}`,
       data: {
         imported: inserted.length,
         skippedDuplicates:
-          validRows.length - inserted.length + duplicatesInFile,
+          importableRows.length - inserted.length + duplicatesInFile,
+        skippedForLimit,
         invalidRows: invalidCount,
         totalRows: rows.length,
       },

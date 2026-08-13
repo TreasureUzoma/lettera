@@ -12,51 +12,16 @@ import {
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Check } from "lucide-react";
-import { plans } from "@workspace/constants/plans";
-import type { PricingResult } from "@workspace/constants/plans";
+import { getPlanForSubscriberCount } from "@workspace/constants/plans";
 import Link from "next/link";
 import { meta } from "@workspace/constants/meta";
-
-function calculatePricing(subscriberCount: number): PricingResult {
-  if (subscriberCount <= 100)
-    return { plan: plans[0]!, totalPrice: 0, overageCount: 0, overagePrice: 0 };
-
-  if (subscriberCount <= 2500) {
-    const overage = Math.max(0, subscriberCount - 2500);
-    const overagePrice = (overage / 1000) * plans[1]!.overage!;
-    return {
-      plan: plans[1]!,
-      totalPrice: plans[1]!.price! + overagePrice,
-      overageCount: overage,
-      overagePrice,
-    };
-  }
-
-  if (subscriberCount <= 10000) {
-    const overage = Math.max(0, subscriberCount - 10000);
-    const overagePrice = (overage / 1000) * plans[2]!.overage!;
-    return {
-      plan: plans[2]!,
-      totalPrice: plans[2]!.price! + overagePrice,
-      overageCount: overage,
-      overagePrice,
-    };
-  }
-
-  return {
-    plan: plans[3]!,
-    totalPrice: null,
-    overageCount: 0,
-    overagePrice: 0,
-  };
-}
 
 export function Pricings() {
   const [subscriberCount, setSubscriberCount] = useState(1000);
   const [inputValue, setInputValue] = useState("1000");
 
-  const pricing = calculatePricing(subscriberCount);
-  const plan = pricing.plan;
+  const plan = getPlanForSubscriberCount(subscriberCount);
+  const isCustomPricing = plan.price === null;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
@@ -113,11 +78,9 @@ export function Pricings() {
             </div>
             <div className="text-right">
               <div className="text-xl md:text-4xl font-bold">
-                {pricing.totalPrice !== null
-                  ? `$${pricing.totalPrice.toFixed(2)}`
-                  : "custom"}
+                {isCustomPricing ? "custom" : plan.priceLabel}
               </div>
-              {pricing.totalPrice !== null && (
+              {!isCustomPricing && (
                 <div className="text-sm text-muted-foreground">per month</div>
               )}
             </div>
@@ -125,37 +88,19 @@ export function Pricings() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {pricing.overageCount > 0 && (
-            <div className="p-4 bg-muted rounded-lg space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>
-                  base price ({plan.subscribers!.toLocaleString()} subscribers)
-                </span>
-                <span className="font-medium">${plan.price!}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>
-                  extra subscribers ({pricing.overageCount.toLocaleString()} × $
-                  {plan.overage!.toFixed(2)}/1k)
-                </span>
-                <span className="font-medium md:text-sm">
-                  ${pricing.overagePrice.toFixed(2)}
-                </span>
-              </div>
-              <div className="pt-2 border-t flex justify-between font-medium">
-                <span>total</span>
-                <span>${pricing.totalPrice!.toFixed(2)}/month</span>
-              </div>
-            </div>
-          )}
-
-          {plan.overage !== null && pricing.overageCount === 0 && (
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium">
-                + ${plan.overage.toFixed(2)} per 1,000 extra subscribers
+          <div className="p-4 bg-muted rounded-lg">
+            <p className="text-sm font-medium">
+              {plan.subscribers === null
+                ? "unlimited subscribers"
+                : `includes up to ${plan.subscribers.toLocaleString()} subscribers`}
+            </p>
+            {plan.subscribers !== null && (
+              <p className="text-sm text-muted-foreground mt-1">
+                pass that and we'll ask you to upgrade — no surprise overage
+                charges.
               </p>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="space-y-3">
             {plan.features.map((feature, i) => (
@@ -171,12 +116,12 @@ export function Pricings() {
           <Button asChild className="w-full" size="lg">
             <Link
               href={
-                plan.name === "enterprise"
+                plan.slug === "enterprise"
                   ? `mailto:${meta.salesEmail}?subject=Enterprise Inquiry`
-                  : `settings/billing/subscribe?plan=${plan.name}`
+                  : `settings/billing/subscribe?plan=${plan.slug}`
               }
             >
-              {pricing.totalPrice === null ? "contact sales" : "get started"}
+              {isCustomPricing ? "contact sales" : "get started"}
             </Link>
           </Button>
         </CardFooter>

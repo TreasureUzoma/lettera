@@ -8,6 +8,10 @@ import { db } from "@workspace/db";
 import { payments, users } from "@workspace/db/schema";
 import { eq } from "drizzle-orm";
 import type { ServiceResponse } from "@workspace/types";
+import { plans, type PlanSlug } from "@workspace/constants/plans";
+
+const isPlanSlug = (slug: string | undefined): slug is PlanSlug =>
+  !!slug && plans.some((plan) => plan.slug === slug);
 
 const paddle = new Paddle(envConfig.PADDLE_API_KEY, {
   environment:
@@ -28,10 +32,12 @@ const PLAN_PRICE_IDS: Partial<Record<string, string>> = {
 /**
  * Maps billing plan slugs (as used in checkout / Paddle price catalog) to
  * the `users.subscriptionType` enum ("free" | "pro" | "enterprise"), which
- * is what actually gates features (e.g. `canRemoveBranding` in
- * `services/projects.ts`). These aren't the same vocabulary — "hobby" and
- * "enterprise" line up, but "professional" and "business" both collapse to
- * "pro" since that's all the enum distinguishes today.
+ * gates coarse features (e.g. `canRemoveBranding` in `services/projects.ts`).
+ * These aren't the same vocabulary — "hobby" and "enterprise" line up, but
+ * "professional" and "business" both collapse to "pro" since that's all the
+ * enum distinguishes. The exact slug is preserved separately in
+ * `users.plan` (see `packages/db/schema.ts`), which is what subscriber-cap
+ * enforcement (`services/limits.ts`) actually reads.
  */
 const PLAN_SLUG_TO_SUBSCRIPTION_TYPE: Record<
   string,
@@ -237,14 +243,12 @@ const handleTransactionCompleted = async (
   });
 
   const planSlug = planSlugFromCustomData(data.customData);
-  if (planSlug) {
+  if (isPlanSlug(planSlug)) {
     const subscriptionType = PLAN_SLUG_TO_SUBSCRIPTION_TYPE[planSlug];
-    if (subscriptionType) {
-      await db
-        .update(users)
-        .set({ subscriptionType })
-        .where(eq(users.id, userId));
-    }
+    await db
+      .update(users)
+      .set({ subscriptionType, plan: planSlug })
+      .where(eq(users.id, userId));
   }
 
   return {
@@ -288,10 +292,14 @@ const handleSubscriptionActivated = async (
     };
   }
 
-  const planSlug = planSlugFromCustomData(data.customData) || "professional";
-  const subscriptionType = PLAN_SLUG_TO_SUBSCRIPTION_TYPE[planSlug] ?? "pro";
+  const rawPlanSlug = planSlugFromCustomData(data.customData);
+  const planSlug: PlanSlug = isPlanSlug(rawPlanSlug) ? rawPlanSlug : "professional";
+  const subscriptionType = PLAN_SLUG_TO_SUBSCRIPTION_TYPE[planSlug];
 
-  await db.update(users).set({ subscriptionType }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({ subscriptionType, plan: planSlug })
+    .where(eq(users.id, userId));
 
   return {
     success: true,
@@ -313,14 +321,12 @@ const handleSubscriptionUpdated = async (
   }
 
   const planSlug = planSlugFromCustomData(data.customData);
-  if (data.status === "active" && planSlug) {
+  if (data.status === "active" && isPlanSlug(planSlug)) {
     const subscriptionType = PLAN_SLUG_TO_SUBSCRIPTION_TYPE[planSlug];
-    if (subscriptionType) {
-      await db
-        .update(users)
-        .set({ subscriptionType })
-        .where(eq(users.id, userId));
-    }
+    await db
+      .update(users)
+      .set({ subscriptionType, plan: planSlug })
+      .where(eq(users.id, userId));
   }
 
   return {
@@ -344,7 +350,7 @@ const handleSubscriptionCanceled = async (
 
   await db
     .update(users)
-    .set({ subscriptionType: "free" })
+    .set({ subscriptionType: "free", plan: "hobby" })
     .where(eq(users.id, userId));
 
   return {
@@ -438,7 +444,7 @@ export const cancelSubscription = async (
   try {
     await db
       .update(users)
-      .set({ subscriptionType: "free" })
+      .set({ subscriptionType: "free", plan: "hobby" })
       .where(eq(users.id, userId));
 
     return {

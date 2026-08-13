@@ -40,6 +40,20 @@ export const userSubscriptionEnum = pgEnum("user_subscription", [
   "pro",
   "enterprise",
 ]);
+/**
+ * The exact billing plan slug (matches `packages/constants/plans.ts`).
+ * `subscriptionType` above only distinguishes free/pro/enterprise for
+ * feature gating (e.g. `canRemoveBranding`), which collapses "professional"
+ * and "business" into the same "pro" bucket — too coarse to know which
+ * plan's subscriber cap actually applies. `plan` is the precise slug used
+ * for that.
+ */
+export const userPlanEnum = pgEnum("user_plan", [
+  "hobby",
+  "professional",
+  "business",
+  "enterprise",
+]);
 export const emailStatusEnum = pgEnum("email_status", ["published", "draft"]);
 export const subscriberStatusEnum = pgEnum("subscriber_status", [
   "subscribed",
@@ -80,6 +94,7 @@ export const users = pgTable("users", {
   status: userStatusEnum("status").default("active"),
   role: userRoleEnum("role").default("user"),
   subscriptionType: userSubscriptionEnum("subscription_type").default("free"),
+  plan: userPlanEnum("plan").default("hobby").notNull(),
 });
 
 export const projects = pgTable("projects", {

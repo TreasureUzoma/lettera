@@ -209,6 +209,9 @@ importers:
       '@workspace/axios':
         specifier: workspace:*
         version: link:../../packages/axios
+      '@workspace/constants':
+        specifier: workspace:*
+        version: link:../../packages/constants
       '@workspace/db':
         specifier: workspace:*
         version: link:../../packages/db

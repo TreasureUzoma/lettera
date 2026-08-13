@@ -17,6 +17,12 @@ const envSchema = z.object({
   AWS_REGION: z.string().default("us-east-1"),
   AWS_ACCESS_KEY_ID: z.string(),
   AWS_SECRET_ACCESS_KEY: z.string(),
+  // Sender for system/transactional email (limit warnings, etc.) — distinct
+  // from NEWSLETTER_DOMAIN, which is per-project outbound newsletter mail.
+  // Must be a verified SES identity.
+  SYSTEM_EMAIL_FROM: z.string().default("notifications@lettera.dev"),
+  // Used to build links (e.g. "upgrade your plan") in system emails.
+  DASHBOARD_SITE: z.string().default("http://localhost:3001"),
   PADDLE_API_KEY: z.string(),
   PADDLE_ENVIRONMENT: z.enum(["sandbox", "production"]).default("sandbox"),
   // Required to verify Paddle webhook signatures — from Paddle Dashboard >
