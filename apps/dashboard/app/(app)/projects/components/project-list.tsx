@@ -29,7 +29,7 @@ export function ProjectList({ projects }: ProjectListProps) {
     <div>
       <h2 className="font-semibold mb-4">Projects</h2>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {projects.map((project) => (
           <Link href={`/projects/${project.slug}`} key={project.id}>
             <Card className="h-full py-4 hover:bg-accent/50 rounded-sm px-4 cursor-pointer transition-colors">

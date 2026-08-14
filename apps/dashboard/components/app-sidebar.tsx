@@ -12,6 +12,7 @@ import {
   BookOpen,
   LogOut,
   ChevronDown,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Logo from "@workspace/ui/components/logo";
@@ -37,7 +38,15 @@ interface NavItem {
   badge?: string;
 }
 
-export default function AppSidebar() {
+interface AppSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function AppSidebar({
+  isOpen = false,
+  onClose = () => {},
+}: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const segments = useSelectedLayoutSegments();
@@ -49,6 +58,12 @@ export default function AppSidebar() {
   const projectSlug = isProjectRoute ? segments[1] : null;
 
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
+
+  // Close the mobile drawer whenever the route changes.
+  React.useEffect(() => {
+    onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const mainNavItems: NavItem[] = [
     {
@@ -110,8 +125,14 @@ export default function AppSidebar() {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen bg-background border-r border-border transition-all duration-300 ease-out flex flex-col z-50",
-        isCollapsed ? "w-16" : "w-64"
+        "h-screen bg-background border-r border-border flex flex-col transition-all duration-300 ease-out",
+        // Mobile: fixed off-canvas drawer, slides in over the content.
+        "fixed inset-y-0 left-0 z-50 w-72 -translate-x-full",
+        isOpen && "translate-x-0",
+        // Desktop: back in normal flex flow — width alone pushes the
+        // content over, no separate margin to keep in sync.
+        "md:static md:inset-auto md:translate-x-0 md:z-auto",
+        isCollapsed ? "md:w-16" : "md:w-64"
       )}
     >
       {/* Logo Section */}
@@ -121,19 +142,30 @@ export default function AppSidebar() {
             <Logo />
           </Link>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 ml-auto"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-        >
-          <ChevronDown
-            className={cn(
-              "w-4 h-4 transition-transform duration-300",
-              isCollapsed ? "rotate-90" : "-rotate-90"
-            )}
-          />
-        </Button>
+        <div className="flex items-center gap-1 ml-auto">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 md:hidden"
+            onClick={onClose}
+            aria-label="Close menu"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hidden md:inline-flex"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            <ChevronDown
+              className={cn(
+                "w-4 h-4 transition-transform duration-300",
+                isCollapsed ? "rotate-90" : "-rotate-90"
+              )}
+            />
+          </Button>
+        </div>
       </div>
 
       <Separator />
