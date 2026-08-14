@@ -1,0 +1,137 @@
+---
+title: Send Newsletter
+description: "Send a newsletter to your subscribers programmatically via the API."
+---
+
+# Send Newsletter
+
+Sends a newsletter to a list of recipients, or to the subscribers of one or more segments. This endpoint requires a **Private Key**.
+
+## Authentication
+
+This endpoint uses both the Public Key and Private Key for authentication.
+
+**Endpoint:** `POST /api/v1/external/projects/newsletters/send`
+
+**Headers:**
+
+- `Content-Type: application/json`
+- `x-lettera-public-key: <YOUR_PUBLIC_KEY>`
+- `x-lettera-private-key: <YOUR_PRIVATE_KEY>`
+
+> [!WARNING]
+> Never expose your Private Key on the client. This endpoint should only be called from your own backend.
+
+## Body
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `subject` | `string` | Yes | The email subject line. |
+| `content` | `string` | Yes | The newsletter body. Supports a small markdown subset (`#`, `##`, `###`, blank lines) which is converted to basic HTML before sending. |
+| `recipientEmails` | `string[]` | No* | A list of email addresses to send to directly. |
+| `segmentIds` | `string[]` | No* | A list of segment IDs. Subscribers belonging to these segments are resolved and merged with `recipientEmails`. |
+
+\* At least one of `recipientEmails` or `segmentIds` must resolve to at least one recipient, or the request fails with `400`.
+
+```json
+{
+  "subject": "Our August Update",
+  "content": "# Hello!\n\nHere's what's new this month...",
+  "recipientEmails": ["user@example.com"],
+  "segmentIds": ["b1e2c3d4-5678-90ab-cdef-1234567890ab"]
+}
+```
+
+## Response
+
+```json
+{
+  "success": true,
+  "message": "Newsletter sent successfully",
+  "data": {}
+}
+```
+
+**Error responses:**
+
+```json
+// Missing/invalid private key
+{ "success": false, "message": "Unauthorized: Private key required" } // 401
+
+// No recipients resolved from recipientEmails/segmentIds
+{ "success": false, "message": "No recipients specified" } // 400
+```
+
+## Code Examples
+
+### cURL
+
+```bash
+curl -X POST https://api.lettera.dev/api/v1/external/projects/newsletters/send \
+  -H "Content-Type: application/json" \
+  -H "x-lettera-public-key: letr_your_public_key" \
+  -H "x-lettera-private-key: letr_private_your_private_key" \
+  -d '{
+    "subject": "Our August Update",
+    "content": "# Hello!\n\nHere is what is new this month...",
+    "recipientEmails": ["user@example.com"]
+  }'
+```
+
+### Node.js (Axios)
+
+```javascript
+const axios = require("axios");
+
+async function sendNewsletter() {
+  try {
+    const response = await axios.post(
+      "https://api.lettera.dev/api/v1/external/projects/newsletters/send",
+      {
+        subject: "Our August Update",
+        content: "# Hello!\n\nHere is what is new this month...",
+        segmentIds: ["b1e2c3d4-5678-90ab-cdef-1234567890ab"],
+      },
+      {
+        headers: {
+          "x-lettera-public-key": "letr_your_public_key",
+          "x-lettera-private-key": "letr_private_your_private_key",
+        },
+      }
+    );
+    console.log(response.data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+sendNewsletter();
+```
+
+### Python (Requests)
+
+```python
+import requests
+
+url = "https://api.lettera.dev/api/v1/external/projects/newsletters/send"
+headers = {
+    "Content-Type": "application/json",
+    "x-lettera-public-key": "letr_your_public_key",
+    "x-lettera-private-key": "letr_private_your_private_key",
+}
+data = {
+    "subject": "Our August Update",
+    "content": "# Hello!\n\nHere is what is new this month...",
+    "recipientEmails": ["user@example.com"],
+}
+
+response = requests.post(url, json=data, headers=headers)
+
+if response.status_code == 200:
+    print("Newsletter sent successfully!")
+else:
+    print(f"Failed: {response.text}")
+```
+
+> [!NOTE]
+> Markdown-to-HTML conversion is currently basic — it only recognizes `#`/`##`/`###` headings and blank lines as paragraph breaks. Rich formatting (lists, links, bold/italic, images) is not yet converted and will be sent as plain text.
