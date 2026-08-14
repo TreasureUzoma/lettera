@@ -77,6 +77,18 @@ export const paymentProviderEnum = pgEnum("payment_provider", [
   "manual",
 ]);
 export const emailTypeEnum = pgEnum("email_type", ["email", "web", "both"]);
+export const newsletterSendStatusEnum = pgEnum("newsletter_send_status", [
+  "sent",
+  "blocked_rate_limit",
+  "blocked_no_recipients",
+  "blocked_moderation",
+  "error",
+]);
+export const moderationVerdictEnum = pgEnum("moderation_verdict", [
+  "clean",
+  "review",
+  "block",
+]);
 
 export const users = pgTable("users", {
   serial: serial("serial").primaryKey(),
@@ -376,6 +388,58 @@ export const segmentSubscribers = pgTable(
   }),
 );
 
+/**
+ * One row per attempted external-API newsletter send (`POST
+ * .../newsletters/send`), whether it went out, was blocked (rate limit, no
+ * resolvable recipients, moderation) or errored. Gives project owners and
+ * admins an audit trail for abuse review, independent of the `emails`
+ * table (which is dashboard-composed campaigns, not raw API sends).
+ */
+export const newsletterSendLogs = pgTable(
+  "newsletter_send_logs",
+  {
+    serial: serial("serial").primaryKey(),
+    id: uuid("id").defaultRandom().notNull().unique(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    apiKeyId: uuid("api_key_id")
+      .notNull()
+      .references(() => projectApiKeys.id, { onDelete: "cascade" }),
+    subject: text("subject").notNull(),
+    recipientCount: integer("recipient_count").notNull().default(0),
+    skippedNonSubscribers: integer("skipped_non_subscribers")
+      .notNull()
+      .default(0),
+    status: newsletterSendStatusEnum("status").notNull(),
+    moderationVerdict: moderationVerdictEnum("moderation_verdict"),
+    moderationCategory: text("moderation_category"),
+    moderationReason: text("moderation_reason"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    projectIdx: index("newsletter_send_logs_project_idx").on(table.projectId),
+    createdAtIdx: index("newsletter_send_logs_created_at_idx").on(
+      table.createdAt,
+    ),
+  }),
+);
+
+export const newsletterSendLogRelations = relations(
+  newsletterSendLogs,
+  ({ one }) => ({
+    project: one(projects, {
+      fields: [newsletterSendLogs.projectId],
+      references: [projects.id],
+    }),
+    apiKey: one(projectApiKeys, {
+      fields: [newsletterSendLogs.apiKeyId],
+      references: [projectApiKeys.id],
+    }),
+  }),
+);
+
 export const projectInviteRelations = relations(projectInvites, ({ one }) => ({
   project: one(projects, {
     fields: [projectInvites.projectId],
@@ -415,6 +479,7 @@ export const projectRelations = relations(projects, ({ one, many }) => ({
   members: many(projectMembers),
   invites: many(projectInvites),
   segments: many(segments),
+  newsletterSendLogs: many(newsletterSendLogs),
 }));
 
 export const projectMemberRelations = relations(projectMembers, ({ one }) => ({

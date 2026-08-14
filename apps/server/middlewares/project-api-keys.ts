@@ -73,6 +73,7 @@ export const projectApiKey: MiddlewareHandler = async (c, next) => {
 
       c.set("project", {
         id: keyRecord.projectId,
+        apiKeyId: keyRecord.id,
         name: keyRecord.project.name,
         slug: keyRecord.project.slug,
         keyType: "private",
@@ -90,6 +91,7 @@ export const projectApiKey: MiddlewareHandler = async (c, next) => {
   } else {
     c.set("project", {
       id: keyRecord.projectId,
+      apiKeyId: keyRecord.id,
       name: keyRecord.project.name,
       slug: keyRecord.project.slug,
       keyType: "public",

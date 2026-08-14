@@ -6,6 +6,12 @@ export type Plan = {
   name: string;
   /** Included subscriber cap. `null` means unlimited (enterprise only). */
   subscribers: number | null;
+  /**
+   * Max external-API newsletter sends (`POST .../newsletters/send`) per
+   * rolling 24h window. `null` means unlimited. Placeholder values — tune
+   * once real usage patterns are known.
+   */
+  newslettersPerDay: number | null;
   price: number | null;
   priceLabel: string;
   description: string;
@@ -18,6 +24,7 @@ export const plans: Plan[] = [
     slug: "hobby",
     name: "hobby",
     subscribers: 100,
+    newslettersPerDay: 3,
     price: 0,
     priceLabel: "free",
     description: "perfect for getting started or testing your first newsletter",
@@ -28,6 +35,7 @@ export const plans: Plan[] = [
     slug: "professional",
     name: "professional",
     subscribers: 2500,
+    newslettersPerDay: 20,
     price: 9,
     priceLabel: "$9",
     description: "for creators growing a serious audience",
@@ -45,6 +53,7 @@ export const plans: Plan[] = [
     slug: "business",
     name: "business",
     subscribers: 10000,
+    newslettersPerDay: 100,
     price: 29,
     priceLabel: "$29",
     description: "for established newsletters and small teams",
@@ -65,6 +74,7 @@ export const plans: Plan[] = [
     slug: "enterprise",
     name: "enterprise",
     subscribers: null,
+    newslettersPerDay: null,
     price: null,
     priceLabel: "custom",
     description: "for large organizations with advanced requirements",

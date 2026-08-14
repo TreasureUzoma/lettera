@@ -1,7 +1,7 @@
 import { db } from "@workspace/db";
 import { subscribers } from "@workspace/db/schema";
 import type { ServiceResponse } from "@workspace/types";
-import { and, count, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { paginate } from "@/utils/pagination";
 import { parse } from "csv-parse/sync";
 import {
@@ -261,6 +261,32 @@ export const getSubscribedEmails = async (
       and(
         eq(subscribers.projectId, projectId),
         eq(subscribers.status, "subscribed")
+      )
+    );
+
+  return rows.map((r) => r.email);
+};
+
+/**
+ * Filters a candidate list of email addresses down to the ones that are
+ * actually subscribed to this project. Used to scope external-API sends
+ * (`recipientEmails`) to real subscribers instead of letting a caller send
+ * to arbitrary addresses just because they hold a valid private key.
+ */
+export const getSubscribedEmailsFromList = async (
+  projectId: string,
+  emails: string[]
+): Promise<string[]> => {
+  if (emails.length === 0) return [];
+
+  const rows = await db
+    .select({ email: subscribers.email })
+    .from(subscribers)
+    .where(
+      and(
+        eq(subscribers.projectId, projectId),
+        eq(subscribers.status, "subscribed"),
+        inArray(subscribers.email, emails)
       )
     );
 

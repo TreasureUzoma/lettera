@@ -28,10 +28,10 @@ This endpoint uses both the Public Key and Private Key for authentication.
 |---|---|---|---|
 | `subject` | `string` | Yes | The email subject line. |
 | `content` | `string` | Yes | The newsletter body. Supports a small markdown subset (`#`, `##`, `###`, blank lines) which is converted to basic HTML before sending. |
-| `recipientEmails` | `string[]` | No* | A list of email addresses to send to directly. |
+| `recipientEmails` | `string[]` | No* | Email addresses to send to. **Must belong to actual subscribers of this project** — see [Recipient scoping](#recipient-scoping) below. Max 5,000 entries per request. |
 | `segmentIds` | `string[]` | No* | A list of segment IDs. Subscribers belonging to these segments are resolved and merged with `recipientEmails`. |
 
-\* At least one of `recipientEmails` or `segmentIds` must resolve to at least one recipient, or the request fails with `400`.
+\* At least one of `recipientEmails` or `segmentIds` must resolve to at least one actual subscriber, or the request fails with `400`.
 
 ```json
 {
@@ -42,13 +42,27 @@ This endpoint uses both the Public Key and Private Key for authentication.
 }
 ```
 
+## Recipient scoping
+
+`recipientEmails` is **not** an open list of arbitrary addresses — every address is checked against this project's subscribed subscribers (via `POST /subscriber/new` or the dashboard), and anything that doesn't match is silently dropped rather than erroring the whole request. The response's `data.skippedNonSubscribers` tells you how many were dropped. Combined with `segmentIds`, the total resolved recipient count (after merging, before scoping) is also capped at 5,000 per request — split larger sends across multiple calls.
+
+## Rate limits
+
+Each project has a daily cap on newsletter sends, based on its plan (roughly: hobby 3/day, professional 20/day, business 100/day, enterprise unlimited — see your plan for the exact number). Exceeding it returns `429`. This is separate from the general per-IP rate limit on the `/external/projects` API group.
+
+## Content moderation
+
+Before sending, the subject and content are checked for spam, phishing, scam, hate, or adult content. Content that's clearly abusive is blocked outright (`403`); everything else — including ordinary promotional newsletters — sends normally. This is an anti-abuse check, not an editorial one: legitimate newsletters are not held back for tone, topic, or sales language.
+
 ## Response
 
 ```json
 {
   "success": true,
   "message": "Newsletter sent successfully",
-  "data": {}
+  "data": {
+    "skippedNonSubscribers": 0
+  }
 }
 ```
 
@@ -58,8 +72,17 @@ This endpoint uses both the Public Key and Private Key for authentication.
 // Missing/invalid private key
 { "success": false, "message": "Unauthorized: Private key required" } // 401
 
-// No recipients resolved from recipientEmails/segmentIds
+// No recipients resolved from recipientEmails/segmentIds after subscriber scoping
 { "success": false, "message": "No recipients specified" } // 400
+
+// Resolved recipient count (recipientEmails + segments) exceeds the per-request cap
+{ "success": false, "message": "This request resolved to 7000 recipients, which exceeds the 5000 limit per request. ..." } // 400
+
+// Project is over its plan's daily newsletter-send cap
+{ "success": false, "message": "<project> has reached its <plan> plan limit of N newsletter sends per day. Try again tomorrow or upgrade to send more." } // 429
+
+// Content moderation blocked the send
+{ "success": false, "message": "This newsletter was blocked by content moderation: <reason>" } // 403
 ```
 
 ## Code Examples

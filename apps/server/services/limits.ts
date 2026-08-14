@@ -4,6 +4,7 @@ import { and, count, eq } from "drizzle-orm";
 import { getPlanBySlug, type Plan } from "@workspace/constants/plans";
 import { envConfig } from "@/config";
 import { sendSubscriberLimitWarningEmail } from "./mail/internal";
+import { getRedis } from "@/lib/redis";
 
 export interface SubscriberUsage {
   projectId: string;
@@ -34,16 +35,23 @@ export class SubscriberLimitError extends Error {
   }
 }
 
+type ProjectOwnerPlan = {
+  projectName: string;
+  plan: Plan;
+  ownerEmail: string;
+  ownerName: string;
+};
+
 /**
- * Looks up the project's owner and their exact plan (`users.plan`, not the
- * coarser `subscriptionType`), plus the project's current subscriber
- * count. Returns `null` if the project has no owner on record, which
- * shouldn't happen for a real project but is handled defensively rather
- * than thrown, since this sits on the hot path for public subscribe forms.
+ * Looks up a project's owner and their exact plan (`users.plan`, not the
+ * coarser `subscriptionType`). Returns `null` if the project has no owner
+ * on record, which shouldn't happen for a real project but is handled
+ * defensively rather than thrown, since this sits on hot paths (public
+ * subscribe forms, external-API sends).
  */
-export const getProjectSubscriberUsage = async (
+const getProjectOwnerPlan = async (
   projectId: string
-): Promise<SubscriberUsage | null> => {
+): Promise<ProjectOwnerPlan | null> => {
   const [row] = await db
     .select({
       projectName: projects.name,
@@ -64,22 +72,38 @@ export const getProjectSubscriberUsage = async (
 
   if (!row) return null;
 
+  return {
+    projectName: row.projectName,
+    plan: getPlanBySlug(row.ownerPlan),
+    ownerEmail: row.ownerEmail,
+    ownerName: row.ownerName,
+  };
+};
+
+/**
+ * Looks up the project's owner/plan plus the project's current subscriber
+ * count. Returns `null` if the project has no owner on record.
+ */
+export const getProjectSubscriberUsage = async (
+  projectId: string
+): Promise<SubscriberUsage | null> => {
+  const ownerPlan = await getProjectOwnerPlan(projectId);
+  if (!ownerPlan) return null;
+
   const [subscriberStats] = await db
     .select({ value: count() })
     .from(subscribers)
     .where(eq(subscribers.projectId, projectId));
   const subscriberCount = subscriberStats?.value ?? 0;
 
-  const plan = getPlanBySlug(row.ownerPlan);
-
   return {
     projectId,
-    projectName: row.projectName,
-    plan,
+    projectName: ownerPlan.projectName,
+    plan: ownerPlan.plan,
     count: subscriberCount,
-    cap: plan.subscribers,
-    ownerEmail: row.ownerEmail,
-    ownerName: row.ownerName,
+    cap: ownerPlan.plan.subscribers,
+    ownerEmail: ownerPlan.ownerEmail,
+    ownerName: ownerPlan.ownerName,
   };
 };
 
@@ -189,6 +213,93 @@ export const assertSubscriberCapacity = async (
     // Already-blocked signups still deserve a fresh nudge to the owner.
     void syncSubscriberLimitWarnings(usage);
     throw new SubscriberLimitError(usage);
+  }
+
+  return usage;
+};
+
+export interface NewsletterSendUsage {
+  projectId: string;
+  projectName: string;
+  plan: Plan;
+  /** Sends already made in today's window, including the one that tipped it over. */
+  count: number;
+  /** Included daily send cap for the owner's plan. `null` = unlimited. */
+  cap: number | null;
+}
+
+/**
+ * Thrown by `assertNewsletterSendCapacity` when a project has hit its
+ * plan's daily external-API newsletter-send cap. Routes should catch this
+ * and surface `.message` to the caller as a 429.
+ */
+export class NewsletterSendLimitError extends Error {
+  usage: NewsletterSendUsage;
+
+  constructor(usage: NewsletterSendUsage) {
+    super(
+      `${usage.projectName} has reached its ${usage.plan.name} plan limit of ${usage.cap} newsletter ${usage.cap === 1 ? "send" : "sends"} per day. Try again tomorrow or upgrade to send more.`
+    );
+    this.name = "NewsletterSendLimitError";
+    this.usage = usage;
+  }
+}
+
+/** Redis key for a project's newsletter-send counter for "today" (UTC). */
+const newsletterSendCounterKey = (projectId: string) =>
+  `newsletter-sends:${projectId}:${new Date().toISOString().slice(0, 10)}`;
+
+/**
+ * Throws `NewsletterSendLimitError` if this send would push the project
+ * past its owner's plan's daily newsletter-send cap. Callers should run
+ * this *before* resolving recipients / calling the mail provider, so a
+ * project that's already over its cap doesn't pay the cost of a real send
+ * attempt (or, later, a moderation check) just to be rejected anyway.
+ *
+ * Uses an atomic Redis `INCR` (24h-ish TTL set on first increment) rather
+ * than a DB row, since this is a high-frequency, best-effort counter, not
+ * data that needs to survive a Redis flush.
+ */
+export const assertNewsletterSendCapacity = async (
+  projectId: string
+): Promise<NewsletterSendUsage> => {
+  const ownerPlan = await getProjectOwnerPlan(projectId);
+
+  if (!ownerPlan) {
+    // Fails closed, same reasoning as assertSubscriberCapacity.
+    console.error(
+      `assertNewsletterSendCapacity: no owner found for project ${projectId}.`
+    );
+    throw new Error("Could not determine this project's send limit.");
+  }
+
+  const { plan, projectName } = ownerPlan;
+
+  if (plan.newslettersPerDay === null) {
+    return { projectId, projectName, plan, count: 0, cap: null };
+  }
+
+  const redis = await getRedis();
+  const key = newsletterSendCounterKey(projectId);
+
+  const count = await redis.incr(key);
+  if (count === 1) {
+    // Only the first increment of the window needs to set the expiry.
+    // ~26h so a request right at the UTC day boundary still gets a full
+    // window rather than expiring a couple hours early.
+    await redis.expire(key, 26 * 60 * 60);
+  }
+
+  const usage: NewsletterSendUsage = {
+    projectId,
+    projectName,
+    plan,
+    count,
+    cap: plan.newslettersPerDay,
+  };
+
+  if (count > plan.newslettersPerDay) {
+    throw new NewsletterSendLimitError(usage);
   }
 
   return usage;

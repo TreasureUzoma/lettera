@@ -17,6 +17,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^4.0.28",
     "@aws-sdk/client-ses": "^3.1044.0",
     "@hono/standard-validator": "^0.1.5",
     "@hono/zod-validator": "^0.7.4",
@@ -27,6 +28,7 @@
     "@workspace/db": "workspace:*",
     "@workspace/types": "workspace:*",
     "@workspace/validations": "workspace:*",
+    "ai": "^7.0.66",
     "bcryptjs": "^3.0.3",
     "csv-parse": "^7.0.2",
     "drizzle-kit": "^0.31.5",

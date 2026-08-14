@@ -33,6 +33,11 @@ const envSchema = z.object({
   // Checkout for a plan fails with a clear error if its price ID isn't set.
   PADDLE_PRICE_ID_PROFESSIONAL: z.string().optional(),
   PADDLE_PRICE_ID_BUSINESS: z.string().optional(),
+  // Powers spam/phishing content moderation on external-API newsletter
+  // sends (see services/moderation.ts). Optional so the feature fails
+  // open (moderation skipped, not the whole send) in envs where it isn't
+  // configured yet, rather than breaking `envConfig.parse` for everyone.
+  GROQ_API_KEY: z.string().optional(),
 });
 
 export const envConfig = envSchema.parse(process.env);
