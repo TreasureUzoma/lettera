@@ -28,6 +28,11 @@
         "AWS_SECRET_ACCESS_KEY",
         "NEWSLETTER_DOMAIN",
         "PADDLE_API_KEY",
+        "GROQ_API_KEY",
+        "PADDLE_WEBHOOK_SECRET",
+        "PADDLE_PRICE_ID_PROFESSIONAL",
+        "PADDLE_PRICE_ID_BUSINESS",
+        "PADDLE_ENVIRONMENT",
         "PORT"
       ]
     },
@@ -61,6 +66,11 @@
         "AWS_ACCESS_KEY_ID",
         "AWS_SECRET_ACCESS_KEY",
         "PADDLE_API_KEY",
+        "GROQ_API_KEY",
+        "PADDLE_WEBHOOK_SECRET",
+        "PADDLE_PRICE_ID_PROFESSIONAL",
+        "PADDLE_PRICE_ID_BUSINESS",
+        "PADDLE_ENVIRONMENT",
         "PORT"
       ]
     }
