@@ -1,4 +1,5 @@
 import { routeStatus } from "@/lib/utils";
+import { renderNewsletterMarkdown } from "@/lib/markdown";
 import { projectApiKey } from "@/middlewares/project-api-keys";
 import { getSubscribers, getSubscribedEmailsFromList } from "@/services/subscribers";
 import { createProjectSubscriber } from "@/services/subscriptions";
@@ -200,18 +201,7 @@ externalProjectRoutes.post(
         );
       }
 
-      // Convert markdown content to HTML (basic support)
-      // TODO: Add proper markdown to HTML conversion
-      const htmlContent = content
-        .split("\n")
-        .map((line: string) => {
-          if (line.startsWith("# ")) return `<h1>${line.slice(2)}</h1>`;
-          if (line.startsWith("## ")) return `<h2>${line.slice(3)}</h2>`;
-          if (line.startsWith("### ")) return `<h3>${line.slice(4)}</h3>`;
-          if (line.trim() === "") return "<br/>";
-          return `<p>${line}</p>`;
-        })
-        .join("");
+      const htmlContent = renderNewsletterMarkdown(content);
 
       const result = await sendEmailNewsletter(
         projectData.slug,
